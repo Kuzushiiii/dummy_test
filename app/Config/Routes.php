@@ -27,6 +27,17 @@ $routes->group('user', function ($routes) {
 });
 // Routing Master Dibawah Sini ---------------------------
 
+// Routes Master Supplier
+$routes->group('supplier', function ($routes) {
+    $routes->add('/', 'Supplier::index', $this->noauth);
+    $routes->add('table', 'Supplier::dataTable', $this->noauth);
+    $routes->add('forms', 'Supplier::forms', $this->noauth);
+    $routes->add('form/(:any)', 'Supplier::forms/$1', $this->noauth);
+    $routes->add('add', 'Supplier::add', $this->noauth);
+    $routes->add('update', 'Supplier::update', $this->noauth);
+    $routes->add('delete', 'Supplier::delete', $this->noauth);
+});
+
 // -------------------------------------------------------->
 // Log Out
 $routes->add('logout', 'User::logOut');

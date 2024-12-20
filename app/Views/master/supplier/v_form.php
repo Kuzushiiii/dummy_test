@@ -1,32 +1,31 @@
-<form id="form-user" style="padding-inline: 0px;">
+<form id="form-supplier" class="form" style="padding-inline: 0px;">
     <div class="form-group">
         <?php if ($form_type == 'edit') { ?>
-            <input type="hidden" id="password_lama" name="password_lama" value="<?= $row['password'] ?>">
             <input type="hidden" id="id" name="id" value="<?= (($form_type == 'edit') ? $userid : '') ?>">
-            <input type="hidden" id="username_old" name="username_old" value="<?= (($form_type == 'edit') ? $row['username'] : '') ?>" required>
         <?php } ?>
-        <label for="name">Name : </label>
-        <input type="text" class="form-input fs-7" id="name" name="name" value="<?= (($form_type == 'edit') ? $row['fullname'] : '') ?>" placeholder="@ex: Admin Staff" required>
+        <label for="suppliername">Supplier Name : </label>
+        <input type="text" class="form-input fs-7" id="suppliername" name="suppliername" value="<?= (($form_type == 'edit') ? $row['suppliername'] : '') ?>" placeholder="@ex: PT. Supplier" required>
+    </div>
+
+    <div class="form-group">
+        <label for="address">Address : </label>
+        <input type="text" class="form-input fs-7" id="address" name="address" value="<?= (($form_type == 'edit') ? $row['address'] : '') ?>" placeholder="@ex: Supplier Address" required>
     </div>
     <div class="form-group">
-        <label class="required">Username :</label>
-        <input type="text" class="form-input fs-7" id="username" name="username" value="<?= (($form_type == 'edit') ? $row['username'] : '') ?>" placeholder="@ex: admin##" required>
+        <label for="phone">Phone : </label>
+        <input type="text" class="form-input fs-7" id="phone" name="phone" value="<?= (($form_type == 'edit') ? $row['phone'] : '') ?>" placeholder="@ex: Phone Number" required>
     </div>
     <div class="form-group">
-        <label class="required">Password :</label>
-        <input type="password" class="form-input fs-7" id="password" name="password" <?= (($form_type == 'edit') ? '' : 'required') ?> placeholder="••••••••••••">
+        <label for="email">Email : </label>
+        <input type="email" class="form-input fs-7" id="email" name="email" value="<?= (($form_type == 'edit') ? $row['email'] : '') ?>" placeholder="@ex: example@gmail.com" required>
     </div>
     <div class="form-group">
-        <label class="required">Email :</label>
-        <input type="email" class="form-input fs-7" id="email" name="email" value="<?= (($form_type == 'edit') ? $row['email'] : '') ?>" placeholder="@ex: admin##" required>
-    </div>
-    <div class="form-group">
-        <label class="required">Phone :</label>
-        <input type="text" class="form-input fs-7" id="phone" name="phone" value="<?= (($form_type == 'edit') ? $row['telp'] : '') ?>" placeholder="@ex: admin##" required>
+        <label for="filepath">FilePath : </label>
+        <input type="text" class="form-input fs-7" id="filepath" name="filepath" value="<?= (($form_type == 'edit') ? $row['filepath'] : '') ?>" placeholder="@ex: ur file path" required>
     </div>
     <input type="hidden" id="csrf_token_form" name="<?= csrf_token() ?>">
     <div class="modal-footer">
-        <button type="button" class="btn btn-warning dflex align-center" onclick="return resetForm('form-user')">
+        <button type="button" class="btn btn-warning dflex align-center" onclick="return resetForm('form-supplier')">
             <i class="bx bx-revision margin-r-2"></i>
             <span class="fw-normal fs-7">Reset</span>
         </button>
@@ -40,16 +39,16 @@
 <script>
     $(document).ready(function() {
         $('#btn-submit').click(function() {
-            $('#form-user').trigger('submit');
+            $('#form-supplier').trigger('submit');
         })
-        $("#form-user").on('submit', function(e) {
+        $("#form-supplier").on('submit', function(e) {
             e.preventDefault();
             let csrf = decrypter($("#csrf_token").val());
             $("#csrf_token_form").val(csrf);
             let form_type = "<?= $form_type ?>";
-            let link = "<?= getURL('user/add') ?>"
+            let link = "<?= getURL('supplier/add') ?>"
             if (form_type == 'edit') {
-                link = "<?= getURL('user/update') ?>"
+                link = "<?= getURL('supplier/update') ?>"
             }
             let data = $(this).serialize();
             $.ajax({
@@ -60,16 +59,16 @@
                 success: function(response) {
                     $("#csrf_token").val(encrypter(response.csrfToken));
                     $("#csrf_token_form").val("");
-                    let pesan = response.pesan;
+                    let message = response.message;
                     let notif = 'success'
-                    if (response.sukses != 1) {
+                    if (response.status != 1) {
                         notif = 'error';
                     }
-                    if (response.pesan != undefined) {
-                        pesan = response.pesan;
+                    if (response.message != undefined) {
+                        message = response.message;
                     }
-                    showNotif(notif, pesan);
-                    if (response.sukses == 1) {
+                    showNotif(notif, message);
+                    if (response.status == 1) {
                         close_modal('modaldetail');
                         tbl.ajax.reload();
                     }
