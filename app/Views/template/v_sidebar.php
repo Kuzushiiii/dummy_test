@@ -40,6 +40,42 @@
                     <span class='fw-normal fs-7'>User</span>
                 </div>
             </a>
+            <a href='<?= getURL('product') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bxs-package'></i>
+                    <span class='fw-normal fs-7'>Product</span>
+                </div>
+            </a>
+            <a href='<?= getURL('category') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bxs-category'></i>
+                    <span class='fw-normal fs-7'>Category</span>
+                </div>
+            </a>
+            <a href='<?= getURL('project') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bx-git-branch'></i>
+                    <span class='fw-normal fs-7'>Project</span>
+                </div>
+            </a>
+            <a href='<?= getURL('document') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bxs-file-blank'></i>
+                    <span class='fw-normal fs-7'>Document</span>
+                </div>
+            </a>
+            <a href='<?= getURL('supplier') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bxs-building-house'></i>
+                    <span class='fw-normal fs-7'>Supplier</span>
+                </div>
+            </a>
+            <a href='<?= getURL('customer') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bxs-buildings'></i>
+                    <span class='fw-normal fs-7'>Customer</span>
+                </div>
+            </a>
         </div>
         <button class=" btn btn-primary dflex align-center w-100 btn-logout" onclick="return toPage('<?= getURL('logout') ?>')" style="display: none;">
             <i class="bx bx-log-out margin-r-3"></i>
