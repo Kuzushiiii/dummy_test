@@ -3,7 +3,7 @@
 <div class="main-content content margin-t-4">
     <div class="card p-x shadow-sm w-100">
         <div class="card-header dflex align-center justify-end">
-            <button class="btn btn-primary dflex align-center" onclick="return modalForm('Add Category', 'modal-lg', '<?= getURL('document/form') ?>')">
+            <button class="btn btn-primary dflex align-center" onclick="return modalForm('Add Category', 'modal-lg', '<?= getURL('category/form') ?>')">
                 <i class="bx bx-plus-circle margin-r-2"></i>
                 <span class="fw-normal fs-7">Add New</span>
             </button>
@@ -14,7 +14,7 @@
                     <thead>
                         <tr>
                             <td class="tableheader">No</td>
-                            <td class="tableheader">Documentname</td>
+                            <td class="tableheader">CategoryName</td>
                             <td class="tableheader">Description</td>
                             <td class="tableheader">FilePath</td>
                             <td class="tableheader">Actions</td>
@@ -31,16 +31,17 @@
 <script>
     function submitData() {
         let link = $('#linksubmit').val(),
-            categoryname = $('#documentname').val(),
+            categoryname = $('#categoryname').val(),
             description = $('#description').val(),
             filepath = $('#fullname').val();
+            
 
         $.ajax({
             url: link,
             type: 'post',
             dataType: 'json',
             data: {
-                categoryname: documentname,
+                categoryname: username,
                 description: description,
                 filepath: filepath,
               
@@ -48,10 +49,10 @@
             success: function(res) {
                 if (res.sukses == '1') {
                     alert(res.pesan);
-                    $('#documentname').val("");
+                    $('#categoryname').val("");
                     $('#description').val("");
                     $('#filepath').val("");
-                    $('#addDocumentModal').modal('hide');
+                    $('#addCategoryModal').modal('hide');
                     tbl.ajax.reload();
                 } else {
                     alert(res.pesan);

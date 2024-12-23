@@ -4,23 +4,23 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class MUser extends Model
+class MCategory extends Model
 {
-    protected $dbs;
-    protected $table = 'msuser as us';
+    protected $db;
+    protected $table = 'mscategory as ct';
     public function __construct()
     {
-        $this->dbs = db_connect();
-        $this->builder = $this->dbs->table($this->table);
+        $this->db = db_connect();
+        $this->builder = $this->db->table($this->table);
     }
 
     public function searchable()
     {
         return [
             null,
-            "us.username",
-            "us.fullname",
-            "us.email",
+            "ct.categoryname",
+            "ct.description",
+            "ct.filepath",
             null,
             null,
         ];
@@ -33,12 +33,12 @@ class MUser extends Model
 
     public function getByName($name)
     {
-        return $this->builder->where("lower(username)", strtolower($name))->get()->getRowArray();
+        return $this->builder->where("lower(customername)", strtolower($name))->get()->getRowArray();
     }
 
-    public function getOne($userid)
+    public function getOne($customerid)
     {
-        return $this->builder->where("id", $userid)->get()->getRowArray();
+        return $this->builder->where("id", $customerid)->get()->getRowArray();
     }
 
     public function store($data)
@@ -55,4 +55,5 @@ class MUser extends Model
     {
         return $this->builder->delete([$column => $value]);
     }
+    
 }

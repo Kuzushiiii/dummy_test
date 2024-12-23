@@ -4,24 +4,27 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class MUser extends Model
+class MDocument extends Model
 {
-    protected $table = 'msuser as us';
+    protected $table = 'msdocument as md';
+    protected $dbs;
     public function __construct()
     {
-        $this->dbs = db_connect();
-        $this->builder = $this->dbs->table($this->table);
+        parent::__construct();
+        $this->builder = $this->db->table($this->table);
     }
+
 
     public function searchable()
     {
         return [
             null,
-            "us.username",
-            "us.fullname",
-            "us.email",
+            'md.documentname',
+            'md.description',
+            'md.filepath',
             null,
             null,
+
         ];
     }
 
@@ -29,10 +32,9 @@ class MUser extends Model
     {
         return $this->builder;
     }
-
     public function getByName($name)
     {
-        return $this->builder->where("lower(username)", strtolower($name))->get()->getRowArray();
+        return $this->builder->where("lower(documentname)", strtolower($name))->get()->getRowArray();
     }
 
     public function getOne($userid)

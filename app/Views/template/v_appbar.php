@@ -13,7 +13,7 @@
                     <form id="form-search" style="display: <?= ($title != 'Notification' ? 'none' : 'block') ?>;">
                         <div class="form-group" style="margin-bottom: 0px !important;">
                             <div class="form-append">
-                                <input type="text" name="search" id="search" class="form-input fs-7set <?= ($title == 'Notification' ? 'notif' : '') ?>" placeholder="Search . .">
+                                <input type="text" name="search" id="search" class="form-input fs-7set <?= getURL('search') ?>" placeholder="Search . .">
                                 <i class="bx bx-search form-append-trailing text-primary"></i>
                             </div>
                         </div>

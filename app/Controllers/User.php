@@ -181,7 +181,7 @@ class User extends BaseController
                 'email' => $email,
                 'telp' => $phone,
                 'updateddate' => date('Y-m-d H:i:s'),
-                'updatedby' => 1,
+                'updatedby' => $userid,
             ];
             if (!empty($password)) {
                 $data += [
