@@ -16,7 +16,7 @@ class Document extends BaseController
     protected $db;
     public function __construct()
     {
-        $this->MDocument = new \App\Models\MDocument();
+        $this->MDocument = new MDocument();
         $this->bc = [
             [
                 'Setting',
