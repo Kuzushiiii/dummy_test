@@ -137,7 +137,7 @@ class Category extends BaseController
 
             // Generate nama file unik untuk filepath
             $newName = $filepath->getRandomName();
-            $filepath->move('uploads/category/', $newName); // Pindahkan file ke folder uploads/customers/
+            $filepath->move('uploads/category/', $newName); // Pindahkan file ke folder uploads/categorys/
             $filePath = 'uploads/category/' . $newName; // Path file yang disimpan
 
             // Simpan data ke database
@@ -153,7 +153,7 @@ class Category extends BaseController
 
             $res = [
                 'sukses' => '1',
-                'pesan' => 'Sukses menambahkan Customer',
+                'pesan' => 'Sukses menambahkan category',
                 'dbError' => db_connect()
             ];
             $this->categoryModel->transCommit();
@@ -233,18 +233,18 @@ class Category extends BaseController
 
     public function deleteData()
     {
-        $customerid = $this->request->getPost('id');
+        $categoryid = $this->request->getPost('id');
         $res = array();
         $this->db->transBegin();
         try {
-            if (empty($customerid)) throw new Exception("ID Customer tidak ditemukan!");
+            if (empty($categoryid)) throw new Exception("ID category tidak ditemukan!");
 
-            $customerid = decrypting($customerid);
-            $row = $this->categoryModel->getOne($customerid);
+            $categoryid = decrypting($categoryid);
+            $row = $this->categoryModel->getOne($categoryid);
 
             if (empty($row)) throw new Exception("User tidak terdaftar di sistem!");
 
-            $this->categoryModel->destroy('id', $customerid);
+            $this->categoryModel->destroy('id', $categoryid);
 
             $res = [
                 'sukses' => '1',

@@ -96,8 +96,8 @@ class Document extends BaseController
 
             // Generate nama file unik untuk filepath
             $newName = $filepath->getRandomName();
-            $filepath->move('uploads/document/', $newName);
-            $filePath = 'uploads/document/' . $newName;
+            $filepath->move('uploads/document', $newName);
+            $filePath = 'uploads/document' . $newName;
 
             $this->MDocument->store([
                 'documentname' => $documentname,
@@ -134,7 +134,7 @@ class Document extends BaseController
     {
         
         $userid = $this->request->getPost('id');
-        $documentname = $this->request->getPost('documentname');
+        $documentname = $this->request->getPost('name');
         $description = $this->request->getPost('description');
         $filepath = $this->request->getFile('dokumen');
         $res = array();
@@ -147,7 +147,7 @@ class Document extends BaseController
             $data = [
                 'documentname' => $documentname,
                 'description' => $description,
-                'filepath' => $filepath,
+                'dokumen' => $filepath,
                 'updateddate' => date('Y-m-d H:i:s'),
                 'updatedby' => $userid,
             ];
@@ -157,7 +157,7 @@ class Document extends BaseController
                 $allowedExtensions = ['doc', 'docx', 'pdf', 'xlsx'];
                 $extension = $filepath->getExtension();
                 if (!in_array($extension, $allowedExtensions)) {
-                    throw new Exception("Format foto tidak valid, hanya jpg, jpeg, dan png yang diperbolehkan!");
+                    throw new Exception("Format foto tidak valid, hanya docx, doc, pdf, xlsx diperbolehkan!");
                 }
     
                 // Hapus file lama jika ada
@@ -165,11 +165,18 @@ class Document extends BaseController
                 if (file_exists($oldFilePath)) {
                     unlink($oldFilePath);
                 }
-    
+
                 // Simpan file baru
                 $newName = $filepath->getRandomName();
-                $filepath->move('uploads/document/', $newName);
-                $data['filepath'] = 'uploads/document/' . $newName;
+                $filepath->move('uploads/document', $newName);
+                $data['filepath'] = 'uploads/document' . $newName;
+            
+    
+                // Hapus file lama jika ada
+                $oldFilePath = $this->MDocument->getOne($userid)['filepath'];
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
             }
 
             $this->MDocument->edit($data, $userid);

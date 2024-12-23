@@ -8,15 +8,15 @@
     </div>
     <div class="form-group">
         <label class="required">Nama Kategori :</label>
-        <input type="text" class="form-input fs-7" id="nama" name="namakategori" value="<?= (($form_type == 'edit') ? $row['categoryname'] : '') ?>" placeholder="Masukan Nama Customer" required>
+        <input type="text" class="form-input fs-7" id="nama" name="namakategori" value="<?= (($form_type == 'edit') ? $row['categoryname'] : '') ?>" placeholder="Masukan Nama category" required>
     </div>
     <div class="form-group">
         <label class="required">Deskripsi :</label>
-        <input type="text" class="form-input fs-7" id="alamat" name="deskripsi" value="<?= (($form_type == 'edit') ? $row['description'] : '') ?>" placeholder="Masukan Alamat Customer" required>
+        <input type="text" class="form-input fs-7" id="alamat" name="deskripsi" value="<?= (($form_type == 'edit') ? $row['description'] : '') ?>" placeholder="Masukan Deskripsi category" required>
     </div>
     <input type="hidden" id="csrf_token_form" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
     <div class="modal-footer">
-        <button type="button" class="btn btn-warning dflex align-center" onclick="return resetForm('form-customer')">
+        <button type="button" class="btn btn-warning dflex align-center" onclick="return resetForm('form-category')">
             <i class="bx bx-revision margin-r-2"></i>
             <span class="fw-normal fs-7">Reset</span>
         </button>
