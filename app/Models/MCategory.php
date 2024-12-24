@@ -6,11 +6,14 @@ use CodeIgniter\Model;
 
 class MCategory extends Model
 {
-    protected $db;
     protected $table = 'mscategory as ct';
+    protected $primaryKey = 'id';
+    protected $returnType = 'array'; // Ensure this is set to 'array' or 'object'
+    protected $allowedFields = ['categoryname', 'description', 'filepath'];
+
     public function __construct()
     {
-        $this->db = db_connect();
+        parent::__construct();
         $this->builder = $this->db->table($this->table);
     }
 
@@ -33,12 +36,12 @@ class MCategory extends Model
 
     public function getByName($name)
     {
-        return $this->builder->where("lower(customername)", strtolower($name))->get()->getRowArray();
+        return $this->builder->where("lower(ct.categoryname)", strtolower($name))->get()->getRowArray();
     }
 
-    public function getOne($customerid)
+    public function getOne($categoryid)
     {
-        return $this->builder->where("id", $customerid)->get()->getRowArray();
+        return $this->builder->where("id", $categoryid)->get()->getRowArray();
     }
 
     public function store($data)
@@ -55,5 +58,4 @@ class MCategory extends Model
     {
         return $this->builder->delete([$column => $value]);
     }
-    
 }

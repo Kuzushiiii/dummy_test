@@ -59,6 +59,7 @@ $routes->group('category', function ($routes) {
     $routes->add('form/(:any)', 'Category::forms/$1', $this->noauth); // Form dengan parameter
     $routes->add('update', 'Category::updateData', $this->noauth);
     $routes->add('delete', 'Category::deleteData', $this->noauth);
+    $routes->add('export', 'Category::export', $this->noauth);
 });
 
 
