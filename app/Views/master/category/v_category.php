@@ -2,15 +2,21 @@
 <?= $this->include('template/v_appbar') ?>
 <div class="main-content content margin-t-4">
     <div class="card p-x shadow-sm w-100">
-        <div class="card-header dflex align-center justify-end">
-        <button class="btn btn-primary dflex align-center" style="margin-right: 10px;" onclick="return modalForm('Add Category', 'modal-lg', '<?= getURL('category/form') ?>')">
-    <i class="bx bx-plus-circle margin-r-2"></i>
-    <span class="fw-normal fs-7">Add New</span>
-</button>
-<button class="btn btn-primary dflex align-center" onclick="window.location.href='<?= getURL('category/export') ?>'">
-    <i class="bx bx-export margin-r-2"></i>
-    <span class="fw-normal fs-7">Export to Excel</span>
-</button>
+        <div class="card-header dflex align-center justify-between">
+            <div class="dflex align-center" style="gap: 10px;">
+                <button class="btn btn-primary dflex align-center" onclick="window.location.href='<?= getURL('category/export') ?>'">
+                    <i class="bx bx-export margin-r-2"></i>
+                    <span class="fw-normal fs-7">Export to Excel</span>
+                </button>
+                <button class="btn btn-primary dflex align-center" onclick="window.location.href='<?= getURL('category/exportPdf') ?>'">
+                    <i class="bx bx-export margin-r-2"></i>
+                    <span class="fw-normal fs-7">Export to PDF</span>
+                </button>
+            </div>
+            <button class="btn btn-primary dflex align-center" onclick="return modalForm('Add Category', 'modal-lg', '<?= getURL('category/form') ?>')">
+                <i class="bx bx-plus-circle margin-r-2"></i>
+                <span class="fw-normal fs-7">Add New</span>
+            </button>
         </div>
         <div class="card-body">
             <div class="table-responsive margin-t-14p">

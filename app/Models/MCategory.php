@@ -8,7 +8,7 @@ class MCategory extends Model
 {
     protected $table = 'mscategory as ct';
     protected $primaryKey = 'id';
-    protected $returnType = 'array'; // Ensure this is set to 'array' or 'object'
+    protected $returnType = 'array';
     protected $allowedFields = ['categoryname', 'description', 'filepath'];
 
     public function __construct()

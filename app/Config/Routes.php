@@ -50,17 +50,18 @@ $routes->group('customer', function ($routes) {
     $routes->add('update', 'Customer::updateData', $this->noauth);
     $routes->add('delete', 'Customer::deleteData', $this->noauth);
 });
-
+// Routes Master Category
 $routes->group('category', function ($routes) {
-    $routes->add('', 'Category::index', $this->noauth);
-    $routes->add('table', 'Category::datatable', $this->noauth);
-    $routes->add('add', 'Category::addData', $this->noauth);
-    $routes->add('form', 'Category::forms', $this->noauth); // Form tanpa parameter
-    $routes->add('form/(:any)', 'Category::forms/$1', $this->noauth); // Form dengan parameter
-    $routes->add('update', 'Category::updateData', $this->noauth);
-    $routes->add('delete', 'Category::deleteData', $this->noauth);
-    $routes->add('export', 'Category::export', $this->noauth);
-});
+        $routes->add('', 'Category::index', $this->noauth);
+        $routes->add('table', 'Category::datatable', $this->noauth);
+        $routes->add('add', 'Category::addData', $this->noauth);
+        $routes->add('form', 'Category::forms', $this->noauth); 
+        $routes->add('form/(:any)', 'Category::forms/$1', $this->noauth);
+        $routes->add('update', 'Category::updateData', $this->noauth);
+        $routes->add('delete', 'Category::deleteData', $this->noauth);
+        $routes->add('export', 'Category::export', $this->noauth);
+        $routes->add('exportPdf', 'Category::exportPdf', $this->noauth); 
+    });
 
 
 // Routes Master Supplier

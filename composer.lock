@@ -7,8 +7,12 @@
 <<<<<<< HEAD
     "content-hash": "da0772ab6c1bbc319574c555ff0ffbe1",
 =======
+<<<<<<< HEAD
+    "content-hash": "da0772ab6c1bbc319574c555ff0ffbe1",
+=======
     "content-hash": "a435b0b41c450cad020fdb3ac78b9b69",
 >>>>>>> 893b88b8b47c64d896440318f0654a467e4d4656
+>>>>>>> 072938ee3488aafebb7df8315c9b80a7272c32b8
     "packages": [
         {
             "name": "brendt/php-sparkline",
@@ -1266,6 +1270,8 @@
         {
 <<<<<<< HEAD
 =======
+<<<<<<< HEAD
+=======
             "name": "sabberworm/php-css-parser",
             "version": "v8.7.0",
             "source": {
@@ -1332,6 +1338,7 @@
         },
         {
 >>>>>>> 893b88b8b47c64d896440318f0654a467e4d4656
+>>>>>>> 072938ee3488aafebb7df8315c9b80a7272c32b8
             "name": "setasign/fpdf",
             "version": "1.8.6",
             "source": {
