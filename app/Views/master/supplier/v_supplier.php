@@ -7,11 +7,11 @@
             <i class="bx bx-plus-circle margin-r-2"></i>
             <span class="fw-normal fs-7">Add New</span>
         </button>
-        <button class="btn btn-success dflex align-center margin-l-2" onclick="downloadexcel()">
+        <button class="btn btn-success dflex align-center margin-l-2" id="excel" name="excel" onclick="downloadexcel()">
             <i class="bx bx-bookmarks margin-r-2"></i>
             <span class="fw-normal fs-7">Export Excel</span>
         </button>
-        <button class="btn btn-warning dflex align-center margin-l-2" onclick="downloadpdf()">
+        <button class="btn btn-warning dflex align-center margin-l-2" onclick="downloadpdf()" id="pdf" name="pdf">
             <i class="bx bx-printer margin-r-2"></i>
             <span class="fw-normal fs-7">Export Pdf</span>
         </button>
@@ -38,12 +38,27 @@
 </div>
 <script>
     function downloadexcel() {
+        let button = $('#excel');
+        button.attr('disabled', true);
+        button.html('<i class="bx bx-bookmarks margin-r-2"></i><span class="fw-normal fs-7">Exporting...</span>');
         window.location.href = '<?= base_url('supplier/export') ?>';
+        setTimeout(() => {
+            button.attr('disabled', false);
+            button.html('<i class="bx bx-bookmarks margin-r-2"></i><span class="fw-normal fs-7">Export Excel</span>');
+        }, 1000);
     }
 
     function downloadpdf() {
+        let button = $('#pdf');
+        button.attr('disabled', true);
+        button.html('<i class="bx bx-printer margin-r-2"></i><span class="fw-normal fs-7">downloading...</span>');
         window.location.href = '<?= base_url('supplier/pdf') ?>';
+        setTimeout(() => {
+            button.attr('disabled', false);
+            button.html('<i class="bx bx-printer margin-r-2"></i><span class="fw-normal fs-7">Export Pdf</span>');
+        }, 1000);
     }
+
     $(document).ready(function() {
         if (!$.fn.DataTable.isDataTable('#dataTable')) {
             $('#dataTable').DataTable({
