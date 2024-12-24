@@ -49,8 +49,18 @@ class MDocument extends Model
 
     public function edit($data, $id)
     {
-        return $this->builder->update($data, ['id' => $id]);
+        $this->builder->where('id', $id);
+        $result = $this->builder->update($data);
+    
+        // Periksa apakah pembaruan berhasil
+        if ($result) {
+            $affectedRows = $this->db->affectedRows();
+            return $affectedRows > 0; // True jika ada baris yang diperbarui
+        }
+    
+        return false; // Jika query gagal
     }
+    
 
     public function destroy($column, $value)
     {

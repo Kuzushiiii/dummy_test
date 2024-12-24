@@ -7,6 +7,14 @@
                 <i class="bx bx-plus-circle margin-r-2"></i>
                 <span class="fw-normal fs-7">Add New</span>
             </button>
+            <button class="btn btn-primary dflex align-center margin-l-2" onclick="downloadexcel()">
+            <i class="bx bx-upload margin-r-2"></i>
+            <span class="fw-normal fs-7">Export</span>
+        </button>
+            <button class="btn btn-primary dflex align-center margin-l-2" onclick="downloadpdf()">
+            <i class="bx bx-printer margin-r-2"></i>
+            <span class="fw-normal fs-7">pdf</span>
+        </button>
         </div>
         <div class="card-body">
             <div class="table-responsive margin-t-14p">
@@ -31,6 +39,12 @@
 </div>
 <?= $this->include('template/v_footer') ?>
 <script>
+    function downloadexcel(){
+        window.location.href = '<?= getURL('product/export')?>';
+    }
+    function downloadpdf(){
+        window.location.href = '<?= getURL('product/pdf')?>';
+    }
     function submitData() {
         let link = $('#linksubmit').val(),
             productname = $('#productname').val(),
@@ -60,7 +74,6 @@
                 if (res.sukses == '1') {
                     alert(res.pesan);
 
-                    // Mengosongkan input setelah berhasil disubmit
                     $('#productname').val("");
                     $('#category').val("");
                     $('#price').val("");
@@ -69,13 +82,13 @@
                     $('#createdby').val("");
                     $('#updatedby').val("");
                     $('#id').val("");
-                    tbl.ajax.reload(); // Reload data tabel
+                    tbl.ajax.reload();
                 } else {
-                    alert(res.pesan); // Menampilkan pesan error dari server
+                    alert(res.pesan);
                 }
             },
             error: function(xhr, ajaxOptions, thrownError) {
-                alert(thrownError); // Menampilkan error jika request gagal
+                alert(thrownError); 
             }
         });
     }

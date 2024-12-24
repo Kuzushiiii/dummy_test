@@ -7,16 +7,10 @@
         <input type="text" class="form-input fs-7" id="name" name="name" value="<?= $row['documentname'] ?? '' ?>" placeholder="Nama Dokumen" required>
     </div>
     <div class="form-group">
-        <?php if ($form_type == 'edit') { ?>
-            <input type="hidden" id="documentid" name="documentid" value="<?= $userid ?>">
-        <?php } ?>
         <label for="dokumen">Masukan Dokumen:</label>
         <input type="file" class="form-input fs-7" id="dokumen" name="dokumen" accept=".doc,.docx,.pdf" <?= $form_type == 'edit' ? '' : 'required' ?>>
     </div>
     <div class="form-group">
-        <?php if ($form_type == 'edit') { ?>
-            <input type="hidden" id="description" name="description" value="<?= $userid ?>">
-        <?php } ?>
         <label for="description">Description:</label>
         <input type="text" class="form-input fs-7" id="description" name="description" value="<?= $row['description'] ?? '' ?>" placeholder="Masukan Deskripsi Dokumen" required>
     </div>
@@ -29,7 +23,7 @@
         <button type="button" id="btn-submit" class="btn btn-primary dflex align-center">
             <i class="bx bx-check margin-r-2"></i>
             <span class="fw-normal fs-7"><?= $form_type == 'edit' ? 'Update' : 'Upload' ?></span>
-        </button>
+        </button> 
     </div>
 </form>
 

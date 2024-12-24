@@ -6,6 +6,7 @@ use CodeIgniter\Model;
 
 class MSupplier extends Model
 {
+    protected $dbs;
     protected $table = 'mssupplier';
     protected $primaryKey = 'id';
     protected $allowedFields = [

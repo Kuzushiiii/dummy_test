@@ -6,6 +6,9 @@ use App\Controllers\BaseController;
 use App\Helpers\Datatables\Datatables;
 use App\Models\MProject;
 use CodeIgniter\HTTP\ResponseInterface;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Fpdf\Fpdf;
 use Exception;
 
 class Project extends BaseController
@@ -45,7 +48,7 @@ class Project extends BaseController
             $btn_hapus = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete Project - " . $db->projectname . "', {'link':'" . getURL('project/delete') . "', 'id':'" . encrypting($db->id) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
 
             $foto_project = !empty($db->filepath)
-                ? "<img src='" . htmlspecialchars($db->filepath) .  "' alt='foto project' width='50' style='border-radius: 50%; object-fit: cover;'>"
+                ? "<img src='" . htmlspecialchars($db->filepath) . "' alt='foto project' width='50' style='border-radius: 50%; object-fit: cover;'>"
                 : "<img( src:'path/to/default.png' alt='foto project' width='50' height:'50' style='border-radius:50%; object-fit: cover;'>";
 
             return [
@@ -97,11 +100,16 @@ class Project extends BaseController
 
         $this->db->transBegin();
         try {
-            if (empty($projectname)) throw new Exception("Project Name is required!");
-            if (empty($description)) throw new Exception("Description is required!");
-            if (empty($startdate)) throw new Exception("Start Date is required!");
-            if (empty($enddate)) throw new Exception("End Date is required!");
-            if (empty($filepath->isValid())) throw new Exception("filepath is required!");
+            if (empty($projectname))
+                throw new Exception("Project Name is required!");
+            if (empty($description))
+                throw new Exception("Description is required!");
+            if (empty($startdate))
+                throw new Exception("Start Date is required!");
+            if (empty($enddate))
+                throw new Exception("End Date is required!");
+            if (empty($filepath->isValid()))
+                throw new Exception("filepath is required!");
 
             $allowedExceptions = ['jpg', 'jpeg', 'png'];
             $extension = $filepath->getExtension();
@@ -152,13 +160,18 @@ class Project extends BaseController
 
         $this->db->transBegin();
         try {
-            if (empty($projectname)) throw new Exception("Project Name is required!");
-            if (empty($description)) throw new Exception("Description is required!");
-            if (empty($startdate)) throw new Exception("Start Date is required!");
-            if (empty($enddate)) throw new Exception("End Date is required!");
+            if (empty($projectname))
+                throw new Exception("Project Name is required!");
+            if (empty($description))
+                throw new Exception("Description is required!");
+            if (empty($startdate))
+                throw new Exception("Start Date is required!");
+            if (empty($enddate))
+                throw new Exception("End Date is required!");
             // Ambil data produk lama untuk mendapatkan gambar sebelumnya
             $oldData = $this->projectModel->getOne($projectid);
-            if (empty($oldData)) throw new Exception("Product not found!");
+            if (empty($oldData))
+                throw new Exception("Product not found!");
 
             // Jika file baru diunggah, validasi file tersebut
             $newFilePath = $oldData['filepath']; // Default ke filepath lama
@@ -217,7 +230,8 @@ class Project extends BaseController
         $this->db->transBegin();
         try {
             $row = $this->projectModel->getOne($projectId);
-            if (empty($row)) throw new Exception("Project not found!");
+            if (empty($row))
+                throw new Exception("Project not found!");
 
             $this->projectModel->destroy('id', $projectId);
 
@@ -236,5 +250,97 @@ class Project extends BaseController
         }
         $this->db->transComplete();
         echo json_encode($res);
+    }
+
+    public function exportexcel()
+    {
+        // Query all projects from the database
+        $projects = $this->projectModel->findAll();
+
+        // Create a new Spreadsheet object
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set the header row
+        $sheet->setCellValue('A1', 'No')
+            ->setCellValue('B1', 'Project Name')
+            ->setCellValue('C1', 'Description')
+            ->setCellValue('D1', 'Start Date')
+            ->setCellValue('E1', 'End Date')
+            ->setCellValue('F1', 'File Path');
+
+        // Fill in the data
+        $row = 2; // Starting row for project data
+        foreach ($projects as $index => $project) {
+            $sheet->setCellValue('A' . $row, $index + 1)
+                ->setCellValue('B' . $row, $project['projectname'])
+                ->setCellValue('C' . $row, $project['description'])
+                ->setCellValue('D' . $row, $project['startdate'])
+                ->setCellValue('E' . $row, $project['enddate'])
+                ->setCellValue('F' . $row, $project['filepath']);
+            $row++;
+        }
+
+        // Create writer and output the file
+        $writer = new Xlsx($spreadsheet);
+
+        // Set the file name for the download
+        $fileName = 'projects.xlsx';
+
+        // Send the appropriate headers to download the file
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $fileName . '"');
+        header('Cache-Control: max-age=0');
+
+        // Write to output
+        $writer->save('php://output');
+    }
+
+    public function generatePdf()
+    {
+        // Include FPDF library
+        $pdf = new Fpdf();
+
+        // Add a page
+        $pdf->AddPage();
+
+        // Set font for the title
+        $pdf->SetFont('Arial', 'B', 16);
+
+        // Add a title
+        $pdf->Cell(200, 10, 'Project data', 0, 1, 'C');
+
+        // Set font for body
+        $pdf->SetFont('Arial', '', 12);
+
+        // Create a table for displaying project data (optional)
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(40, 10, 'Project Name', 1);
+        $pdf->Cell(50, 10, 'Description', 1);
+        $pdf->Cell(40, 10, 'Start Date', 1);
+        $pdf->Cell(40, 10, 'End Date', 1);
+        $pdf->Ln();
+
+        // Retrieve project data from the model
+        $projects = $this->projectModel->findAll();
+
+        $pdf->SetFont('Arial', '', 12);
+        foreach ($projects as $project) {
+            // Project Name
+            $pdf->Cell(40, 10, $project['projectname'], 1);
+
+            // Description (using MultiCell to allow wrapping)
+            $pdf->MultiCell(50, 10, $project['description'], 1);
+
+            // Start Date and End Date (they are still displayed with Cell)
+            $pdf->Cell(40, 10, $project['startdate'], 1);
+            $pdf->Cell(40, 10, $project['enddate'], 1);
+
+            // Move to the next line after the description, since MultiCell affects the height of the row
+            $pdf->Ln();
+        }
+
+        // Output the PDF to the browser for download
+        $pdf->Output('D', 'projects.pdf');
     }
 }

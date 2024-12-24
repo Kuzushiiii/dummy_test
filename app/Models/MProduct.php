@@ -77,4 +77,7 @@ class MProduct extends Model
         return $this->builder->where($column, $value)->get()->getRowArray();
     }
 
+    public function getAll(){
+        return $this->builder->get()->getResultArray();
+    }
 }

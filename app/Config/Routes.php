@@ -86,6 +86,9 @@ $routes->group('project', function ($routes) {
     $routes->add('form/(:any)', 'Project::forms/$1', $this->noauth);
     $routes->add('update', 'Project::updateData', $this->noauth);
     $routes->add('delete', 'Project::deleteData', $this->noauth);
+    $routes->add('export', 'Project::exportexcel');
+    $routes->get('generatePdf', 'Project::generatePdf');
+
 });
 // Routes Master Product
 $routes->group('product', function ($routes) {
@@ -95,8 +98,15 @@ $routes->group('product', function ($routes) {
     $routes->add('form', 'Product::forms', $this->noauth);
     $routes->add('form/(:any)', 'Product::forms/$1', $this->noauth);
     $routes->add('update', 'Product::updateData', $this->noauth);
+    $routes->add('export', 'Product::exportexcel', $this->noauth);
+    $routes->add('pdf', 'Product::Fpdf', $this->noauth);
     $routes->add('delete', 'Product::deleteData', $this->noauth);
 });
 // -------------------------------------------------------->
 // Log Out
-$routes->add('logout', 'User::logOut');
+$routes->add('User/logOut', 'User::logOut');
+
+//Export to excel routes
+$routes->get('Document/export', 'Document::export');
+$routes->get('Document/exportpdf', 'Document::exportpdf');
+
