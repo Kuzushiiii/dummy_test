@@ -7,6 +7,7 @@ use App\Helpers\Datatables\Datatables;
 use App\Models\MProduct;
 use CodeIgniter\HTTP\ResponseInterface;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Fpdf\Fpdf;
 use Exception;
 
 class Product extends BaseController
@@ -295,6 +296,41 @@ class Product extends BaseController
         header('Cache-Control: max-age=0');
 
         $writer->save('php://output');
+        exit;
+    }
+
+    public function fpdf()
+    {
+        $pdf = new FPDF();
+        $data = $this->productModel->getAll();
+
+        $pdf->SetTitle('Product Data');
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', 'B', 12);
+
+        $pdf->Cell(0, 10, 'Product Data Report', 0, 1, 'C');
+        $pdf->Ln(10);
+
+        $pdf->Cell(10, 10, 'No', 1, 0, 'C');
+        $pdf->Cell(50, 10, 'Product Name', 1, 0, 'C');
+        $pdf->Cell(30, 10, 'Category', 1, 0, 'C');
+        $pdf->Cell(25, 10, 'Price', 1, 0, 'C');
+        $pdf->Cell(20, 10, 'Stock', 1, 0, 'C'); 
+        $pdf->Cell(55, 10, 'File path', 1, 1, 'C'); 
+
+        $pdf->SetFont('Arial', '', 10);
+        $i = 1;
+        foreach ($data as $row) {
+            $pdf->Cell(10, 10, $i, 1, 0, 'C');
+            $pdf->Cell(50, 10, $row['productname'], 1, 0, 'L');
+            $pdf->Cell(30, 10, $row['category'], 1, 0, 'L');
+            $pdf->Cell(25, 10, $row['price'], 1, 0, 'L');
+            $pdf->Cell(20, 10, $row['stock'], 1, 1, 'L'); 
+            $pdf->Cell(55, 10, $row['filepath'], 1, 1, 'L'); 
+            $i++;
+        }
+        
+        $pdf->Output('D', 'Product_Data'.'.pdf');
         exit;
     }
 }

@@ -8,8 +8,12 @@
                 <span class="fw-normal fs-7">Add New</span>
             </button>
             <button class="btn btn-primary dflex align-center margin-l-2" onclick="downloadexcel()">
-            <i class="bx bx-download margin-r-2"></i>
+            <i class="bx bx-upload margin-r-2"></i>
             <span class="fw-normal fs-7">Export</span>
+        </button>
+            <button class="btn btn-primary dflex align-center margin-l-2" onclick="downloadpdf()">
+            <i class="bx bx-printer margin-r-2"></i>
+            <span class="fw-normal fs-7">pdf</span>
         </button>
         </div>
         <div class="card-body">
@@ -37,6 +41,9 @@
 <script>
     function downloadexcel(){
         window.location.href = '<?= getURL('product/export')?>';
+    }
+    function downloadpdf(){
+        window.location.href = '<?= getURL('product/pdf')?>';
     }
     function submitData() {
         let link = $('#linksubmit').val(),

@@ -8,6 +8,7 @@ use App\Models\MSupplier;
 use CodeIgniter\HTTP\ResponseInterface;
 use Exception;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Fpdf\Fpdf;
 
 class Supplier extends BaseController
 {
@@ -240,7 +241,7 @@ class Supplier extends BaseController
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Supplier_Data');
-        
+
         $headerStyle = [
             'font' => [
                 'bold' => true,
@@ -295,5 +296,36 @@ class Supplier extends BaseController
         exit;
     }
 
+    public function fpdf()
+    {
+        $pdf = new FPDF();
+        $data = $this->MSupplier->getAll();
 
+        $pdf->SetTitle('Supplier Data');
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', 'B', 12);
+
+        $pdf->Cell(0, 10, 'Supplier Data Report', 0, 1, 'C');
+        $pdf->Ln(10);
+
+        $pdf->Cell(10, 10, 'No', 1, 0, 'C');
+        $pdf->Cell(40, 10, 'Supplier Name', 1, 0, 'C');
+        $pdf->Cell(40, 10, 'Address', 1, 0, 'C');
+        $pdf->Cell(40, 10, 'Phone', 1, 0, 'C');
+        $pdf->Cell(60, 10, 'Email', 1, 1, 'C'); 
+
+        $pdf->SetFont('Arial', '', 12);
+        $i = 1;
+        foreach ($data as $row) {
+            $pdf->Cell(10, 10, $i, 1, 0, 'C');
+            $pdf->Cell(40, 10, $row['suppliername'], 1, 0, 'L');
+            $pdf->Cell(40, 10, $row['address'], 1, 0, 'L');
+            $pdf->Cell(40, 10, $row['phone'], 1, 0, 'L');
+            $pdf->Cell(60, 10, $row['email'], 1, 1, 'L'); 
+            $i++;
+        }
+
+        $pdf->Output('D', 'Supplier_Data_'.'tanggal_'.date('Y-m-d').'.pdf');
+        exit;
+    }
 }

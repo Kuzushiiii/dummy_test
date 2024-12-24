@@ -15,6 +15,7 @@
         "codeigniter4/framework": "^4.0",
         "fpdf/fpdf": "^1.86",
         "phpoffice/phpspreadsheet": "^3.6",
+        "setasign/fpdf": "^1.8",
         "tuupola/base62": "^2.1"
     },
     "require-dev": {
