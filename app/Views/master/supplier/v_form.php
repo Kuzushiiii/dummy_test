@@ -85,6 +85,13 @@
                         close_modal('modaldetail');
                         tbl.ajax.reload();
                     }
+                    $('#btn-submit').on('click', function (e) {
+                        $(this).attr('disabled', true);
+                        setTimeout(function () {
+                            $('#btn-submit').attr('disabled', false);
+                        },
+                            3000);
+                    });
                 },
                 error: function (xhr, ajaxOptions, thrownError) {
                     showError(thrownError + ", please contact administrator for the further");
