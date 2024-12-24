@@ -28,11 +28,7 @@ class Database extends Config
         'DSN'          => '',
         'hostname'     => 'localhost',
         'username'     => 'postgres',
-<<<<<<< HEAD
         'password'     => 'anggarizki',
-=======
-        'password'     => '123',
->>>>>>> cee52c5c0fb3f28359e09d9cc5ae2e9c28fabfe1
         'database'     => 'dbtest',
         'DBDriver'     => 'Postgre',
         'DBPrefix'     => '',

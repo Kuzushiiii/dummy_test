@@ -346,16 +346,16 @@ class Customer extends BaseController
     public function printPDF()
     {
         $pdf = new Fpdf();
-        $pdf->AddPage();
+        $pdf->AddPage('L'); // Set landscape orientation
         $pdf->SetFont('Arial', 'B', 12);
 
         // Header
         $pdf->Cell(10, 10, 'No', 1, 0, 'C');
-        $pdf->Cell(40, 10, 'filepath', 1, 0, 'C');
-        $pdf->Cell(40, 10, 'Nama', 1, 0, 'C');
-        $pdf->Cell(60, 10, 'Email', 1, 0, 'C');
-        $pdf->Cell(40, 10, 'Alamat', 1, 0, 'C');
-        $pdf->Cell(30, 10, 'Telepon', 1, 1, 'C');
+        $pdf->Cell(50, 10, 'Filepath', 1, 0, 'C');
+        $pdf->Cell(50, 10, 'Nama', 1, 0, 'C');
+        $pdf->Cell(80, 10, 'Email', 1, 0, 'C');
+        $pdf->Cell(60, 10, 'Alamat', 1, 0, 'C');
+        $pdf->Cell(40, 10, 'Telepon', 1, 1, 'C');
 
         $pdf->SetFont('Arial', '', 12);
         $datas = $this->customerModel->datatable()->get()->getResultArray();
@@ -363,17 +363,35 @@ class Customer extends BaseController
         $no = 1;
         foreach ($datas as $row) {
             $pdf->Cell(10, 10, $no++, 1, 0, 'C');
-            $pdf->Cell(40, 10, $row['filepath'], 1, 0, 'L');
-            $pdf->Cell(40, 10, $row['customername'], 1, 0, 'L');
-            $pdf->MultiCell(60, 10, $row['email'], 1, 'L');
-            $pdf->MultiCell(40, 10, $row['address'], 1, 'L');
-            $pdf->Cell(30, 10, $row['phone'], 1, 1, 'L');
+
+            // Filepath
+            $x = $pdf->GetX();
+            $y = $pdf->GetY();
+            $pdf->MultiCell(50, 10, $row['filepath'], 1, 'L');
+            $pdf->SetXY($x + 50, $y);
+
+            // Nama
+            $x = $pdf->GetX();
+            $pdf->MultiCell(50, 10, $row['customername'], 1, 'L');
+            $pdf->SetXY($x + 50, $y);
+
+            // Email
+            $x = $pdf->GetX();
+            $pdf->MultiCell(80, 10, $row['email'], 1, 'L');
+            $pdf->SetXY($x + 80, $y);
+
+            // Alamat
+            $x = $pdf->GetX();
+            $pdf->MultiCell(60, 10, $row['address'], 1, 'L');
+            $pdf->SetXY($x + 60, $y);
+
+            // Telepon
+            $pdf->Cell(40, 10, $row['phone'], 1, 1, 'L');
         }
 
         $pdf->Output('D', 'data_customer.pdf');
         exit;
     }
-
 
     public function logOut()
     {
