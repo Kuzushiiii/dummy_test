@@ -23,7 +23,7 @@
 </body>
 
 </html>
-<script src="<?= base_url('public/js/jquery.js') ?>"></script>
+<script src="<?= base_url('/js/jquery.js') ?>"></script>
 <script>
     function loginAuth() {
         let link = '<?= base_url('login/auth') ?>',

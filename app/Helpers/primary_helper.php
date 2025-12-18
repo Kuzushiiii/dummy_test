@@ -681,7 +681,7 @@ function deleteDataParam($arr)
 
 function getAvatar($userid)
 {
-    $avatar = getURL('public/images/avatar/avatars.png');
+    $avatar = base_url('images/avatar/avatars.png');
     $profilepict = getSession('profilepict');
     if ($profilepict != null) {
         $avatar = getURL('public/images/avatar/user/' . $profilepict);

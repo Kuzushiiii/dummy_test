@@ -90,5 +90,4 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = ['primary_helper'];
-}
+    public $helpers = ['primary_helper'];}

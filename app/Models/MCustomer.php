@@ -35,12 +35,12 @@ class MCustomer extends Model
 
     public function getByName($name)
     {
-        return $this->builder->where("lower(customername)", strtolower($name))->get()->getRowArray();
+        return $this->dbs->table('mscustomer')->where("lower(customername)", strtolower($name))->get()->getRowArray();
     }
 
     public function getOne($customerid)
     {
-        return $this->builder->where("id", $customerid)->get()->getRowArray();
+        return $this->dbs->table('mscustomer')->where("id", $customerid)->get()->getRowArray();
     }
 
     public function store($data)

@@ -16,6 +16,7 @@ class User extends BaseController
     protected $db;
     public function __construct()
     {
+        helper('primary_helper');
         $this->userModel = new MUser();
         $this->bc = [
             [
@@ -127,7 +128,7 @@ class User extends BaseController
             if (empty($username)) throw new Exception("Username dibutuhkan!");
             if (empty($password)) throw new Exception("Password dibutuhkan!");
             if (empty($fullname)) throw new Exception("Fullname masih kosong!");
-            $row = $this->userModel->getByName($fullname);
+            $row = $this->userModel->getByName($username);
             if (!empty($row)) throw new Exception("User dengan username ini sudah terdaftar!");
             $this->userModel->store([
                 'username' => $username,
@@ -237,12 +238,8 @@ class User extends BaseController
 
     public function logOut()
     {
-        $userid = session()->get('userid');
-        $row = $this->userModel->getOne($userid);
-        if (!empty($row)) {
-            destroySession();
-        }
-        return redirect('login');
+        session()->destroy();
+        return redirect()->to(base_url('login'));
     }
 
     public function printPDF()

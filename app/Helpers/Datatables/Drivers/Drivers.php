@@ -25,7 +25,7 @@ class Drivers
     public function filter($query)
     {
         if ($this->request->search()->isNotEmpty() && $this->request->getDatabaseColumns()->count() > 0) {
-            $query->andGroupStart();
+            $query->GroupStart();
 
             $index = 0;
             $searchValue = $this->request->search()->value();

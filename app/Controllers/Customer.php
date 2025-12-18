@@ -90,7 +90,8 @@ class Customer extends BaseController
 
             $foto_profil = !empty($db->filepath)
                 ? "<img src='" . htmlspecialchars($db->filepath) . "' alt='Foto Profil' width='50' height='50' style='border-radius: 50%; object-fit: cover;'>"
-                : "<img src='path/to/default-image.png' alt='Foto Profil Default' width='50' height='50' style='border-radius: 50%; object-fit: cover;'>";
+                : "<center><img src='/images/avatar/avatar-0.png' alt='Foto Profil Default' width='50' height='50' style='border-radius: 50%; object-fit: cover;'></center>";
+
 
             return [
                 $no,
@@ -395,22 +396,7 @@ class Customer extends BaseController
 
     public function logOut()
     {
-        $this->db->transBegin();
-        try {
-            session()->destroy();
-            $res = [
-                'sukses' => '1',
-                'pesan' => 'Berhasil Logout',
-                'link' => ('login/v_login')
-            ];
-        } catch (Exception $e) {
-            $res = [
-                'sukses' => '0',
-                'pesan' => $e->getMessage(),
-                'traceString' => $e->getTraceAsString()
-            ];
-        }
-        $this->db->transComplete();
-        echo json_encode($res);
+        session()->destroy();
+        return redirect()->to(base_url('login'));
     }
 }
