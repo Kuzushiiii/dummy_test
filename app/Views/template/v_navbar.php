@@ -191,6 +191,14 @@
                     <style>
                         .dropdown-content.bell .dropdown-item {
                             align-items: start !important;
+                            display: flex !important;
+                        }
+
+                        @media (max-width: 768px) {
+                            .dropdown-content.bell .dropdown-item {
+                                display: flex !important;
+                                align-items: start !important;
+                            }
                         }
                     </style>
                     <div class="dropdown-content bell" style="width: 300px">

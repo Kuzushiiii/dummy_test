@@ -49,7 +49,7 @@ class Project extends BaseController
             $btn_print = "<button type='button' class='btn btn-sm btn-info' onclick=\"window.open('" . getURL('project/generatePdf/' . encrypting($db->id)) . "', '_blank')\"><i class='bx bx-printer'></i></button>";
 
             $foto_project = !empty($db->filepath)
-                ? "<img src='" . htmlspecialchars($db->filepath) . "' alt='foto project' width='50' style='border-radius: 50%; object-fit: cover;'>"
+                ? "<center><img src='" . htmlspecialchars($db->filepath) . "' alt='foto project' width='50' style='border-radius: 50%; object-fit: cover;'></center>"
                 : "<img( src:'path/to/default.png' alt='foto project' width='50' height:'50' style='border-radius:50%; object-fit: cover;'>";
 
             return [

@@ -100,6 +100,7 @@
 
     function toPage(url) {
         window.location.href = url;
+        return false;
     }
 
     function showPass(item, val, scsm) {

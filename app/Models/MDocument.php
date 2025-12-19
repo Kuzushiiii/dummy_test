@@ -32,6 +32,7 @@ class MDocument extends Model
     {
         return $this->builder;
     }
+    
     public function getByName($name)
     {
         return $this->builder->where("lower(documentname)", strtolower($name))->get()->getRowArray();

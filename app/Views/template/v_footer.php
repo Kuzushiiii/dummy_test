@@ -857,6 +857,7 @@
         window.location.href = url;
         if (blank != '') {
             window.open(url, '_blank');
+            return false;
         }
     }
 
@@ -1306,7 +1307,7 @@
     })
 
     function load_notification() {
-        $("#list-notifikasi").html("");
+        $("#list-notifikasi, #list-company-hp").html("");
         $.ajax({
             url: "<?= base_url('servers/getnotif') ?>",
             type: 'post',
@@ -1331,7 +1332,7 @@
                     let link = arr[x]['link'];
                     let splitlink = link.split('--');
                     let getlink = splitlink[0]
-                    $("#list-notifikasi").append(`
+                    $("#list-notifikasi, #list-company-hp").append(`
                     <div class="dropdown-item align-start" ${style_warna} url="${getlink}" type="single" notif="${arr[x]['notifid']}" onclick="read_notif(this)">
     <img src="<?= getURL('/images/avatar/avatar-1.png') ?>" style="width: 30px; height: 100%; object-fit: cover" alt="avatar" class="img-profile margin-r-3" />
     <div class="row" style="width: 100%">

@@ -43,7 +43,7 @@
         let link = $('#linksubmit').val(),
             categoryname = $('#categoryname').val(),
             description = $('#description').val(),
-            filepath = $('#fullname').val();
+            filepath = $('#filepath').val();
             
         $.ajax({
             url: link,

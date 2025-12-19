@@ -8,6 +8,13 @@
         border-radius: 5rem;
         padding: 2px;
     }
+
+    @media (max-width: 768px) {
+        .btn-logout {
+            display: none !important;
+        }
+        
+    }
 </style>
 <aside>
     <div class="sidebar">
@@ -77,7 +84,7 @@
                 </div>
             </a>
         </div>
-        <button class=" btn btn-primary dflex align-center w-100 btn-logout" onclick="return toPage('<?= getURL('logout') ?>')" style="display: none;">
+        <button class=" btn btn-primary dflex align-center w-100 btn-logout" onclick="return toPage('<?= getURL('User/logOut') ?>')" style="display: none;">
             <i class="bx bx-log-out margin-r-3"></i>
             <span class="fw-normal fs-7">Log Out</span>
         </button>
