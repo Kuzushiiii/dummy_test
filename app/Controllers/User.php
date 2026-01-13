@@ -53,7 +53,7 @@ class User extends BaseController
             $row = $this->userModel->getByName($username);
             if (empty($row)) throw new Exception("User tidak terdaftar di sistem!");
             if (password_verify($password, $row['password'])) {
-                setSession('userid', $row['userid']);
+                setSession('userid', $row['id']);
                 setSession('name', $row['fullname']);
                 $res = [
                     'sukses' => '1',
@@ -82,8 +82,8 @@ class User extends BaseController
             ->make();
 
         $table->updateRow(function ($db, $no) {
-            $btn_edit = "<button type='button' class='btn btn-sm btn-warning' onclick=\"modalForm('Update User - " . $db->fullname . "', 'modal-lg', '" . getURL('user/form/' . encrypting($db->userid)) . "', {identifier: this})\"><i class='bx bx-edit-alt'></i></button>";
-            $btn_hapus = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete User - " . $db->fullname . "', {'link':'" . getURL('user/delete') . "', 'id':'" . encrypting($db->userid) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
+            $btn_edit = "<button type='button' class='btn btn-sm btn-warning' onclick=\"modalForm('Update User - " . $db->fullname . "', 'modal-lg', '" . getURL('user/form/' . encrypting($db->id)) . "', {identifier: this})\"><i class='bx bx-edit-alt'></i></button>";
+            $btn_hapus = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete User - " . $db->fullname . "', {'link':'" . getURL('user/delete') . "', 'id':'" . encrypting($db->id) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
             return [
                 $no,
                 $db->fullname,
@@ -216,7 +216,7 @@ class User extends BaseController
         try {
             $row = $this->userModel->getOne($userid);
             if (empty($row)) throw new Exception("User tidak terdaftar!");
-            $this->userModel->destroy('userid', $userid);
+            $this->userModel->destroy('id', $userid);
             $res = [
                 'sukses' => '1',
                 'pesan' => 'Data berhasil dihapus!',
@@ -237,7 +237,7 @@ class User extends BaseController
 
     public function logOut()
     {
-        $userid = getSession('userid');
+        $userid = session()->get('userid');
         $row = $this->userModel->getOne($userid);
         if (!empty($row)) {
             destroySession();

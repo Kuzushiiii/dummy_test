@@ -38,7 +38,7 @@ class MUser extends Model
 
     public function getOne($userid)
     {
-        return $this->builder->where("userid", $userid)->get()->getRowArray();
+        return $this->builder->where("id", $userid)->get()->getRowArray();
     }
 
     public function store($data)
@@ -48,7 +48,7 @@ class MUser extends Model
 
     public function edit($data, $id)
     {
-        return $this->builder->update($data, ['userid' => $id]);
+        return $this->builder->update($data, ['id' => $id]);
     }
 
     public function destroy($column, $value)
