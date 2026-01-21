@@ -2,31 +2,29 @@
 <?= $this->include('template/v_appbar') ?>
 <div class="main-content content margin-t-4">
     <div class="card p-x shadow-sm w-100">
-        <div class="card-header dflex align-center justify-end">
-        <div class="button-group">
-    <!-- Add New Button -->
-    <button class="btn btn-primary d-flex align-center" style="margin: 0.5rem;" onclick="return modalForm('Add Category', 'modal-lg', '<?= getURL('document/form') ?>')">
-        <i class="bx bx-plus-circle margin-r-2"></i> <!-- Ikon untuk Add -->
-        <span class="fw-normal fs-7">Add New</span>
-    </button>
-
-    <!-- Export to Excel Button -->
-    <button class="btn btn-success d-flex align-center" style="margin: 0.5rem;" onclick="window.location.href='<?= base_url('Document/export') ?>'">
-        <i class="bx bx-spreadsheet margin-r-2"></i> <!-- Ikon untuk Excel -->
-        <span class="fw-normal fs-7">Export to Excel</span>
-    </button>
-
-    <!-- Export to PDF Button -->
-    <button class="btn btn-danger d-flex align-center" style="margin: 0.5rem;" onclick="window.location.href='<?= base_url('Document/exportpdf') ?>'">
-        <i class="bx bx-file margin-r-2"></i> <!-- Ikon untuk PDF -->
-        <span class="fw-normal fs-7">Export to PDF</span>
-    </button>
-</div>
+        <div class="card-header dflex align-center justify-end" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+            <button class="btn btn-primary dflex align-center" onclick="return modalForm('Add Document', 'modal-lg', '<?= getURL('document/form') ?>')">
+                <i class="bx bx-plus-circle margin-r-2"></i>
+                <span class="fw-normal fs-7">Add New</span>
+            </button>
+            <button class="btn btn-success dflex align-center margin-l-2" onclick="return modalForm('Import Document', 'modal-lg', '<?= getURL('document/formImport') ?>')">
+                <i class="bx bx-import margin-r-2"></i>
+                <span class="fw-normal fs-7">Import</span>
+            </button>
+            <button class="btn btn-primary dflex align-center margin-l-2" onclick="window.location.href='<?= base_url('Document/export') ?>'">
+                <i class="bx bx-spreadsheet margin-r-2"></i>
+                <span class="fw-normal fs-7">Export Excel</span>
+            </button>
+            <button class="btn btn-danger dflex align-center margin-l-2" onclick="window.location.href='<?= base_url('Document/exportpdf') ?>'">
+                <i class="bx bx-printer margin-r-2"></i>
+                <span class="fw-normal fs-7">Export PDF</span>
+            </button>
 
         </div>
 
-        <div class="table-responsive margin-t-14p">
-            <table class="table table-bordered table-master fs-7 w-100">
+        <div class="card-body" style="background-color: #ffffff;">
+            <div class="table-responsive margin-t-14p">
+            <table class="table table-striped table-bordered table-master fs-7 w-100">
                 <thead>
                     <tr>
                         <td class="tableheader">No</td>

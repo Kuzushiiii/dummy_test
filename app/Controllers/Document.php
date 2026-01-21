@@ -89,6 +89,10 @@ class Document extends BaseController
             if (!$filepath || !$filepath->isValid()) throw new Exception("Filepath tidak valid!");
             if (empty($documentname)) throw new Exception("Masukkan nama dokumen");
 
+            // Check for duplicate document name
+            $existing = $this->MDocument->where('documentname', $documentname)->first();
+            if ($existing) throw new Exception("Document name already exists!");
+
             $allowedExtensions = ['doc', 'docx', 'pdf', 'xlsx'];
             $extension = $filepath->getExtension();
             if (!in_array($extension, $allowedExtensions)) {
@@ -353,6 +357,62 @@ class Document extends BaseController
         // Output the PDF as a downloadable file
         $pdf->Output('D', 'Data_Dokumen_' . date('Ymd_His') . '.pdf');
     }
-    
-    
+
+    public function formImport()
+    {
+        $dt['view'] = view('master/document/v_import', []);
+        $dt['csrfToken'] = csrf_hash();
+        echo json_encode($dt);
+    }
+
+    public function importExcel()
+    {
+        $datas = json_decode($this->request->getPost('datas'));
+        $res = array();
+        $this->db->transBegin();
+        try {
+            $undfhdocument = 0;
+            $undfhdocumentarr = [];
+
+            foreach ($datas as $dt) {
+                if (
+                    empty($dt[0]) || // documentname
+                    empty($dt[1]) || // description
+                    empty($dt[2])   // filepath
+                ) {
+                    $undfhdocument++;
+                    $undfhdocumentarr[] = $dt[0] ?? '-';
+                    continue;
+                }
+
+                $this->MDocument->store([
+                    'documentname' => trim($dt[0]),
+                    'description' => trim($dt[1]),
+                    'filepath' => trim($dt[2]),
+                    'createddate' => date('Y-m-d H:i:s'),
+                    'createdby' => getSession('userid'),
+                    'updateddate' => date('Y-m-d H:i:s'),
+                    'updatedby' => getSession('userid'),
+                ]);
+            }
+
+            $res = [
+                'sukses' => '1',
+                'undfhproduct' => $undfhdocument,
+                'undfhproductarr' => $undfhdocumentarr
+            ];
+            $this->db->transCommit();
+        } catch (Exception $e) {
+            $res = [
+                'sukses' => '0',
+                'err' => $e->getMessage(),
+                'traceString' => $e->getTraceAsString()
+            ];
+            $this->db->transRollback();
+        }
+        $this->db->transComplete();
+        $res['csrfToken'] = csrf_hash();
+        echo json_encode($res);
+    }
+
 }

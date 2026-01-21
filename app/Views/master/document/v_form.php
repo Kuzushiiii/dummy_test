@@ -28,13 +28,28 @@
 </form>
 
 <script>
+    let isSubmitting = false;
     $(document).ready(function() {
-        $('#btn-submit').click(function() {
+        // Prevent Enter key from submitting if already submitting
+        $(document).on('keydown', '#form-document input', function(e) {
+            if (e.key === 'Enter' && isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        $('#btn-submit').off('click').on('click', function() {
             $('#form-document').trigger('submit');
         });
 
-        $("#form-document").on('submit', function(e) {
+        $("#form-document").off('submit').on('submit', function(e) {
             e.preventDefault();
+            if (isSubmitting) return;
+            isSubmitting = true;
+
+            // Disable the submit button to prevent multiple submissions
+            $('#btn-submit').prop('disabled', true);
+            $('#btn-submit span').text('Uploading...');
 
             // Set up CSRF token and endpoint URLs
             let csrf = decrypter($("#csrf_token").val());
@@ -56,6 +71,11 @@
                 processData: false, // Don't process the files
                 contentType: false, // Don't set content type
                 success: function(response) {
+                    isSubmitting = false;
+                    // Re-enable the submit button
+                    $('#btn-submit').prop('disabled', false);
+                    $('#btn-submit span').text('Upload');
+
                     $("#csrf_token").val(encrypter(response.csrfToken));
                     $("#csrf_token_form").val("");
                     let pesan = response.pesan;
@@ -73,6 +93,11 @@
                     }
                 },
                 error: function(xhr, ajaxOptions, thrownError) {
+                    isSubmitting = false;
+                    // Re-enable the submit button on error
+                    $('#btn-submit').prop('disabled', false);
+                    $('#btn-submit span').text('Upload');
+
                     showError(thrownError + ", please contact administrator for further assistance.");
                 }
             });

@@ -40,8 +40,25 @@
         $('#form-customer').trigger('submit');
     });
 
-    $("#form-customer").on('submit', function(e) {
+    let isSubmitting = false;
+    $(document).ready(function() {
+        $(document).on('keydown', '#form-customer input', function(e) {
+            if (e.key === 'Enter' && isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+
+    $("#form-customer").off('submit').on('submit', function(e) {
         e.preventDefault();
+        if (isSubmitting) return;
+        isSubmitting = true;
+
+        // Disable the submit button to prevent multiple submissions
+        $('#btn-submit').prop('disabled', true);
+        $('#btn-submit span').text('Saving...');
+
         let csrf = decrypter($("#csrf_token").val());
         $("#csrf_token_form").val(csrf);
         let form_type = "<?= $form_type ?>";
@@ -58,6 +75,11 @@
             processData: false, // Don't process the files
             contentType: false, // Don't set content type
             success: function(response) {
+                isSubmitting = false;
+                // Re-enable the submit button
+                $('#btn-submit').prop('disabled', false);
+                $('#btn-submit span').text('<?= ($form_type == 'edit' ? 'Update' : 'Save') ?>');
+
                 $("#csrf_token").val(encrypter(response.csrfToken));
                 $("#csrf_token_form").val("");
                 let pesan = response.pesan;
@@ -75,6 +97,11 @@
                 }
             },
             error: function(xhr, ajaxOptions, thrownError) {
+                isSubmitting = false;
+                // Re-enable the submit button on error
+                $('#btn-submit').prop('disabled', false);
+                $('#btn-submit span').text('<?= ($form_type == 'edit' ? 'Update' : 'Save') ?>');
+
                 showError(thrownError + ", please contact administrator for further assistance.");
             }
         });

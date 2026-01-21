@@ -41,15 +41,28 @@
 </form>
 
 <script>
+    let isSubmitting = false;
     $(document).ready(function() {
-        // Trigger form submission when the save button is clicked
-        $('#btn-submit').click(function() {
+        $(document).on('keydown', '#form-project input', function(e) {
+            if (e.key === 'Enter' && isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        $('#btn-submit').off('click').on('click', function() {
             $('#form-project').trigger('submit');
         });
 
-        // Submit form via AJAX when the form is submitted
-        $("#form-project").on('submit', function(e) {
+        
+        $("#form-project").off('submit').on('submit', function(e) {
             e.preventDefault();
+            if (isSubmitting) return;
+            isSubmitting = true;
+
+            // Disable the submit button to prevent multiple submissions
+            $('#btn-submit').prop('disabled', true);
+            $('#btn-submit span').text('Saving...');
 
             // Get CSRF token from form and decrypt it
             let csrf = decrypter($("#csrf_token").val());
@@ -74,6 +87,11 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
+                    isSubmitting = false;
+                    // Re-enable the submit button
+                    $('#btn-submit').prop('disabled', false);
+                    $('#btn-submit span').text('<?= ($form_type == 'edit' ? 'Update' : 'Save') ?>');
+
                     // Update CSRF token after successful response
                     $("#csrf_token").val(encrypter(response.csrfToken));
                     $("#csrf_token_form").val("");
@@ -99,6 +117,11 @@
                     }
                 },
                 error: function(xhr, ajaxOptions, thrownError) {
+                    isSubmitting = false;
+                    // Re-enable the submit button on error
+                    $('#btn-submit').prop('disabled', false);
+                    $('#btn-submit span').text('<?= ($form_type == 'edit' ? 'Update' : 'Save') ?>');
+
                     // Handle AJAX request failure
                     showError(thrownError + ", please contact administrator for further assistance.");
                 }

@@ -1,0 +1,99 @@
+[33m349b47b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m auditing
+[33mf1b0348[m Add files via upload
+[33m1a694fd[m tambah fitur pdf row
+[33m1b31c28[m pull request
+[33m06a476a[m pull request
+[33m19fb3c3[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33mc471369[m penambahan fitur generate pdf untuk 1 row
+[33mf0eafcb[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m7a3357d[m For All
+[33m4bfa6e7[m For All
+[33md90c1e0[m test
+[33mae449cc[m test app php
+[33mab73a04[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m1c8d361[m pull request
+[33m55fc6de[m pull request
+[33mb6b3b9a[m memperbaiki bug
+[33m71e43ae[m fix merge
+[33m107ff95[m sarkowii
+[33m2c284cd[m pull request
+[33m9dac1c6[m pull request
+[33mb5e44fd[m fixing delete bug
+[33m116816c[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33md71a5a3[m pull request
+[33m1ab393d[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m9cbf48a[m pull request
+[33m2e61054[m Pull request
+[33madfcf81[m pull request
+[33mcee52c5[m Fixing some bug
+[33mc22fd06[m commit test
+[33m0531887[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m768d72c[m pull request
+[33m072938e[m penambahan validasi button agar tidak terjadi spam
+[33m9588558[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m28eb482[m pull request
+[33m52faed4[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m90f1081[m Add Export to pdf using Fpdf to Documents section
+[33m7bfbab7[m pull request
+[33maed966e[m Menambahkan Export Excel
+[33m893b88b[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m96db7e6[m pull request
+[33m251e052[m Add Export to Excel for documents
+[33m7b83494[m Add Features Export to  Excel for Documents
+[33mb21997f[m Resolve merge conflicts
+[33m7e519aa[m perbaikan error
+[33m3cd2d52[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33ma41538b[m add export pdf dan sedikit perbaikan di view
+[33me1e65fe[m tambah fitur export excel project
+[33m3b2aa82[m Add header style for the table
+[33m5e6107c[m Add export excel
+[33m41ae060[m Resolved merge conflicts in v_category.php
+[33m43f82e9[m Add export excel
+[33mc75fca2[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33mbcfec25[m penambahan export excell
+[33m4dc1515[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m35fec2e[m update: adding fpdf
+[33mc79b064[m Merge https://github.com/HyperdataRexo/dummytest
+[33mb3c1795[m Fixing category controller
+[33md10ef58[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m69a941e[m disable button saat proses agar tidak terjadi spam
+[33md8e15a0[m perbaikan bug
+[33m73ce9b3[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33mafec390[m update: fix minor project
+[33me1b9646[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33maef30bf[m responsive table supplier
+[33m1e49f6b[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m3cabd19[m update: fix uploads
+[33m562cddd[m notifikasi part 2
+[33md5901b5[m memperbaiki notifikasi error
+[33mda3b3e7[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m50746b4[m fix bug edit dokumen
+[33mccaf1f4[m membenahi file konfigurasi
+[33m785c9b5[m test
+[33m0a7e235[m test
+[33maadc221[m revisi
+[33m3b73d64[m fitur dokumen(revisi bug deskripsi)
+[33m844d805[m Perbaikan bug
+[33md251d08[m Perbaikan bug
+[33m914d52e[m Perbaikan bug
+[33m268a2d2[m fitur document
+[33m6389a06[m Merge branch 'main' of https://github.com/HyperdataRexo/dummytest
+[33m2eb0074[m revisi code untuk upload saat update dan validasi upload file
+[33m4141285[m fitur document
+[33ma2d686c[m revisi
+[33m3a1141e[m revisi supplier for filepath
+[33m40c5c83[m product dan revisi fitur project
+[33m72bb10c[m fitur product dan revisi fitur project
+[33m4106e50[m kategory
+[33m1fb7f91[m Pesan commit Anda
+[33m383fdf1[m Menyelesaikan konflik dan melanjutkan merge
+[33maee7b86[m Menambahkan fitur Customer dan update beberapa file konfigurasi
+[33m08ee62d[m Category Menu Here
+[33mb33467d[m fitur project
+[33m93706ea[m membuat fitur supplier
+[33m7e4e9a2[m update: push static sidebar
+[33md0b4e4b[m update: install customs template, menu organize
+[33mc135a8a[m update: route exceldump
+[33m5f73fc4[m update: excel dump
+[33m7c34eb0[m App.php fix indexPage
+[33m701ea75[m pesan commit - first commit

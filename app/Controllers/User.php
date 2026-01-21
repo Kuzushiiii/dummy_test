@@ -76,6 +76,72 @@ class User extends BaseController
         echo json_encode($res);
     }
 
+    public function formImport()
+    {
+        $dt['view'] = view('master/user/v_import', []);
+        $dt['csrfToken'] = csrf_hash();
+        echo json_encode($dt);
+    }
+
+    public function importExcel()
+    {
+        $datas = json_decode($this->request->getPost('datas'));
+        $res = array();
+        $this->db->transBegin();
+        try {
+            $undfhuser = 0;
+            $undfhuserarr = [];
+
+            foreach ($datas as $dt) {
+                if (
+                    empty($dt[0]) || // username
+                    empty($dt[1]) || // password
+                    empty($dt[2])   // fullname
+                ) {
+                    $undfhuser++;
+                    $undfhuserarr[] = $dt[0] ?? '-';
+                    continue;
+                }
+
+                $row = $this->userModel->getByName($dt[0]);
+                if (!empty($row)) {
+                    $undfhuser++;
+                    $undfhuserarr[] = $dt[0] ?? '-';
+                    continue;
+                }
+
+                $this->userModel->store([
+                    'username' => trim($dt[0]),
+                    'password' => password_hash(trim($dt[1]), PASSWORD_DEFAULT),
+                    'fullname' => trim($dt[2]),
+                    'email' => trim($dt[3] ?? ''),
+                    'telp' => trim($dt[4] ?? ''),
+                    'createddate' => date('Y-m-d H:i:s'),
+                    'createdby' => getSession('userid'),
+                    'updateddate' => date('Y-m-d H:i:s'),
+                    'updatedby' => getSession('userid'),
+                ]);
+            }
+
+            $res = [
+                'sukses' => '1',
+                'undfhproduct' => $undfhuser,
+                'undfhproductarr' => $undfhuserarr
+            ];
+            $this->db->transCommit();
+        } catch (Exception $e) {
+            $res = [
+                'sukses' => '0',
+                'err' => $e->getMessage(),
+                'traceString' => $e->getTraceAsString()
+            ];
+            $this->db->transRollback();
+        }
+        $this->db->transComplete();
+        $res['csrfToken'] = csrf_hash();
+        echo json_encode($res);
+    }
+
     public function datatable()
     {
         $table = Datatables::method([MUser::class, 'datatable'], 'searchable')
@@ -127,8 +193,10 @@ class User extends BaseController
             if (empty($username)) throw new Exception("Username dibutuhkan!");
             if (empty($password)) throw new Exception("Password dibutuhkan!");
             if (empty($fullname)) throw new Exception("Fullname masih kosong!");
-            $row = $this->userModel->getByName($fullname);
-            if (!empty($row)) throw new Exception("User dengan username ini sudah terdaftar!");
+            $row = $this->userModel->where('username', $username)->first();
+            if (!empty($row)) throw new Exception("Username sudah terdaftar!");
+            $row = $this->userModel->where('fullname', $fullname)->first();
+            if (!empty($row)) throw new Exception("Fullname sudah terdaftar!");
             $this->userModel->store([
                 'username' => $username,
                 'password' => password_hash($password, PASSWORD_DEFAULT),

@@ -16,15 +16,7 @@
         "dompdf/dompdf": "*",
         "fpdf/fpdf": "^1.86",
         "phpoffice/phpspreadsheet": "^3.6",
-<<<<<<< HEAD
-        "setasign/fpdf": "^1.8",
-=======
-<<<<<<< HEAD
-        "setasign/fpdf": "^1.8",
-=======
         "setasign/fpdf": "*",
->>>>>>> 893b88b8b47c64d896440318f0654a467e4d4656
->>>>>>> 072938ee3488aafebb7df8315c9b80a7272c32b8
         "tuupola/base62": "^2.1"
     },
     "require-dev": {

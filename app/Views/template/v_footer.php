@@ -1,3 +1,4 @@
+
 </div>
 </div>
 </div>
@@ -733,6 +734,9 @@
                     $(`#modaldetail-size`).addClass(size)
                     $("#modaldetail-title").html(`<h4>${title}</h4>`);
                     $("#modaldetail-form").html(res.view)
+                    $("#modaldetail-form script").each(function() {
+                        eval($(this).text());
+                    });
                     $(`#modaldetail`).modal("toggle");
                     dp('#modaldetail')
                 }
@@ -781,6 +785,9 @@
                     $(`#modaldetailtwo-size`).addClass(size)
                     $("#modaldetailtwo-title").html(`<h4>${title}</h4>`);
                     $("#modaldetailtwo-form").html(res.view)
+                    $("#modaldetailtwo-form script").each(function() {
+                        eval($(this).text());
+                    });
                     $(`#modaldetailtwo`).modal("toggle");
                     dp('#modaldetailtwo')
                 }
@@ -1111,7 +1118,7 @@
                     reloadpage = v;
                 } else if (k == 'reloadurl') {
                     reloadurl = v;
-                } else if (k == 'table-cls') {
+                } else if (k == 'table-id') {
                     table_cls = v;
                 }
             })
@@ -1135,9 +1142,15 @@
                                 // dp('#' + reloadpage);
                             })
                         } else if (pagetype == 'table') {
-                            tbl.ajax.reload();
-                            if (typeof tbls !== 'undefined') {
-                                tbls.ajax.reload();
+                            if (table_cls == 'detailsTable') {
+                                if (typeof detailsTbl !== 'undefined') {
+                                    detailsTbl.ajax.reload(null, false);
+                                }
+                            } else {
+                                tbl.ajax.reload();
+                                if (typeof tbls !== 'undefined') {
+                                    tbls.ajax.reload();
+                                }
                             }
                         } else if (pagetype == 'tablespecific') {
                             if (table_cls == 'tbl_sub') {
@@ -1916,6 +1929,7 @@
         let url = config.url ?? null;
         let title = config.title ?? null;
         let type = config.type ?? null;
+        let data = config.data ?? {};
 
         relElement.modal.modal('show');
         relElement.modaltitle.text(title);

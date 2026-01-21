@@ -139,6 +139,10 @@ class Customer extends BaseController
             if (empty($telepon)) throw new Exception("Telephone masih kosong!");
             if (empty($email)) throw new Exception("Email masih kosong!");
 
+            // Check for duplicate customer name or email
+            $existing = $this->customerModel->where('customername', $nama)->orWhere('email', $email)->first();
+            if ($existing) throw new Exception("Customer name or email already exists!");
+
             // Validasi ekstensi file
             $allowedExtensions = ['jpg', 'jpeg', 'png'];
             $extension = $foto->getExtension();
@@ -391,6 +395,67 @@ class Customer extends BaseController
 
         $pdf->Output('D', 'data_customer.pdf');
         exit;
+    }
+
+    public function formImport()
+    {
+        $dt['view'] = view('master/customer/v_import', []);
+        $dt['csrfToken'] = csrf_hash();
+        echo json_encode($dt);
+    }
+
+    public function importExcel()
+    {
+        $datas = json_decode($this->request->getPost('datas'));
+        $res = array();
+        $this->customerModel->transBegin();
+        try {
+            $undfhcustomer = 0;
+            $undfhcustomerarr = [];
+
+            foreach ($datas as $dt) {
+                if (
+                    empty($dt[0]) || // customername
+                    empty($dt[1]) || // address
+                    empty($dt[2]) || // phone
+                    empty($dt[3]) || // email
+                    empty($dt[4])   // filepath
+                ) {
+                    $undfhcustomer++;
+                    $undfhcustomerarr[] = $dt[0] ?? '-';
+                    continue;
+                }
+
+                $this->customerModel->store([
+                    'customername' => trim($dt[0]),
+                    'address' => trim($dt[1]),
+                    'phone' => trim($dt[2]),
+                    'email' => trim($dt[3]),
+                    'filepath' => trim($dt[4]),
+                    'createddate' => date('Y-m-d H:i:s'),
+                    'createdby' => getSession('userid'),
+                    'updateddate' => date('Y-m-d H:i:s'),
+                    'updatedby' => getSession('userid'),
+                ]);
+            }
+
+            $res = [
+                'sukses' => '1',
+                'undfhproduct' => $undfhcustomer,
+                'undfhproductarr' => $undfhcustomerarr
+            ];
+            $this->customerModel->transCommit();
+        } catch (Exception $e) {
+            $res = [
+                'sukses' => '0',
+                'err' => $e->getMessage(),
+                'traceString' => $e->getTraceAsString()
+            ];
+            $this->customerModel->transRollback();
+        }
+        $this->customerModel->transComplete();
+        $res['csrfToken'] = csrf_hash();
+        echo json_encode($res);
     }
 
     public function logOut()

@@ -112,6 +112,10 @@ class Project extends BaseController
             if (empty($filepath->isValid()))
                 throw new Exception("filepath is required!");
 
+            // Check for duplicate project name
+            $existing = $this->projectModel->where('projectname', $projectname)->first();
+            if ($existing) throw new Exception("Project name already exists!");
+
             $allowedExceptions = ['jpg', 'jpeg', 'png'];
             $extension = $filepath->getExtension();
             if (!in_array($extension, $allowedExceptions)) {
