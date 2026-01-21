@@ -86,6 +86,20 @@ class MPurchaseOrder extends Model
             ->getResultArray();
     }
 
+    public function getDetailHeaderId($detailId)
+    {
+        return $this->db->table('trpurchaseorderdt')
+            ->select('headerid')
+            ->where('id', $detailId)
+            ->get()
+            ->getRowArray()['headerid'] ?? null;
+    }
+
+    public function isTransCodeExists($transCode)
+    {
+        return $this->where('transcode', $transCode)->first() !== null;
+    }
+
     public function getDetailsAjaxData($headerId, $search = '', $start = 0, $length = 10)
     {
         $builder = $this->db->table('trpurchaseorderdt as dt')
@@ -95,13 +109,10 @@ class MPurchaseOrder extends Model
             ->where('dt.headerid', $headerId)
             ->where('dt.isactive', true);
 
-        // Get total records without search
         $recordsTotal = $builder->countAllResults(false);
 
-        // Clone builder for filtered count and data retrieval
         $filteredBuilder = clone $builder;
 
-        // Apply search to filtered builder if present
         if (!empty($search)) {
             $s = $this->db->escapeLikeString($search);
             $filteredBuilder->groupStart()
@@ -110,10 +121,8 @@ class MPurchaseOrder extends Model
                 ->groupEnd();
         }
 
-        // Get filtered count
         $recordsFiltered = $filteredBuilder->countAllResults(false);
 
-        // Apply limit for pagination and get data
         $filteredBuilder->limit($length, $start);
         $data = $filteredBuilder->get()->getResultArray();
 

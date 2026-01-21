@@ -110,47 +110,50 @@ class PurchaseOrder extends BaseController
     public function addData()
     {
         log_message('debug', 'addData called with transCode: ' . $this->request->getPost('transactionCode'));
-        $db = \Config\Database::connect();
 
         $transactionCode = $this->request->getPost('transactionCode');
         $transactionDate = $this->request->getPost('transactionDate');
         $supplierId = $this->request->getPost('supplierId');
         $supplyDate = $this->request->getPost('supplyDate');
-        $grandTotal = (float) ($this->request->getPost('grandTotal') ?: 0.0);
         $description = $this->request->getPost('description');
 
-        $db->transBegin();
+        $this->db->transBegin();
         try {
             if (empty($transactionCode)) throw new Exception(("Kode Transaksi dibutuhkan!"));
             if (empty($transactionDate)) throw new Exception(("Tanggal Transaksi dibutuhkan!"));
             if (empty($supplierId)) throw new Exception(("Supplier dibutuhkan!"));
-            if (!is_numeric($grandTotal)) throw new Exception('Grand total must be numeric!');
-
-            // Check if transcode already exists
-            $existing = $this->ModelPoHd->where('transcode', $transactionCode)->first();
-            if ($existing) throw new Exception('Kode Transaksi sudah ada!');
+            if ($this->ModelPoHd->isTransCodeExists($transactionCode)) {
+                throw new Exception('Kode Transaksi sudah ada!');
+            }
 
             $data = [
                 'transcode' => $transactionCode,
                 'transdate' => $transactionDate,
                 'supplierid' => $supplierId,
                 'supplydate' => $supplyDate,
-                'grandtotal' => $grandTotal,
+                'grandtotal' => 0.0,
                 'description' => $description
             ];
 
-            $insertId = $this->ModelPoHd->insert($data); // satu kali
-            $this->db->transCommit(); // gunakan $this->db karena transBegin() pakai $db
+            $insertId = $this->ModelPoHd->insert($data);
 
-            $res = [
-                'sukses' => '1',
-                'pesan' => 'Data berhasil disimpan.',
-                'csrfToken' => csrf_hash()
-            ];
-            echo json_encode($res);
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => '0',
+                    'pesan' => 'Gagal menyimpan data transaksi'
+                ]);
+            } else {
+                $this->db->transCommit();
+                return $this->response->setJSON([
+                    'sukses' => '1',
+                    'pesan' => 'Data berhasil disimpan.',
+                    'csrfToken' => csrf_hash()
+                ]);
+            }
         } catch (Exception $e) {
-            $this->ModelPoHd->transRollback();
-            echo json_encode(['sukses' => '0', 'pesan' => $e->getMessage()]);
+            $this->db->transRollback();
+            return $this->response->setJSON(['sukses' => '0', 'pesan' => $e->getMessage()]);
         }
     }
 
@@ -161,8 +164,10 @@ class PurchaseOrder extends BaseController
         $transactionDate = $this->request->getPost('transactionDate');
         $supplierId = $this->request->getPost('supplierId');
         $supplyDate = $this->request->getPost('supplyDate');
-        $grandTotal = (float) ($this->request->getPost('grandTotal') ?: 0.0);
         $description = $this->request->getPost('description');
+
+        // Calculate grand total from current details
+        $grandTotal = $this->ModelPoHd->getGrandTotal($purchaseOrderId);
 
         $this->ModelPoHd->transBegin();
         try {
@@ -181,17 +186,24 @@ class PurchaseOrder extends BaseController
             ];
 
             $this->ModelPoHd->edit($data, $purchaseOrderId);
-            $this->ModelPoHd->transCommit();
 
-            $res = [
-                'sukses' => '1',
-                'pesan' => 'Data berhasil diupdate.',
-                'csrfToken' => csrf_hash()
-            ];
-            echo json_encode($res);
+            if ($this->ModelPoHd->transStatus() === false) {
+                $this->ModelPoHd->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => '0',
+                    'pesan' => 'Gagal mengupdate data transaksi'
+                ]);
+            } else {
+                $this->ModelPoHd->transCommit();
+                return $this->response->setJSON([
+                    'sukses' => '1',
+                    'pesan' => 'Data berhasil diupdate.',
+                    'csrfToken' => csrf_hash()
+                ]);
+            }
         } catch (Exception $e) {
             $this->ModelPoHd->transRollback();
-            echo json_encode(['sukses' => '0', 'pesan' => $e->getMessage()]);
+            return $this->response->setJSON(['sukses' => '0', 'pesan' => $e->getMessage()]);
         }
     }
 
@@ -210,23 +222,29 @@ class PurchaseOrder extends BaseController
 
             $this->ModelPoHd->destroy('id', $id);
 
-            $res = [
-                'sukses' => '1',
-                'pesan' => 'Data berhasil dihapus.',
-                'dbError' => db_connect()
-            ];
-            $this->ModelPoHd->transCommit();
+            if ($this->ModelPoHd->transStatus() === false) {
+                $this->ModelPoHd->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => '0',
+                    'pesan' => 'Gagal menghapus data transaksi'
+                ]);
+            } else {
+                $this->ModelPoHd->transCommit();
+                return $this->response->setJSON([
+                    'sukses' => '1',
+                    'pesan' => 'Data berhasil dihapus.',
+                    'dbError' => db_connect()
+                ]);
+            }
         } catch (Exception $e) {
-            $res = [
+            $this->ModelPoHd->transRollback();
+            return $this->response->setJSON([
                 'sukses' => '0',
                 'pesan' => $e->getMessage(),
                 'traceString' => $e->getTraceAsString(),
                 'dbError' => db_connect()->error()
-            ];
-            $this->ModelPoHd->transRollback();
+            ]);
         }
-        $this->ModelPoHd->transComplete();
-        echo json_encode($res);
     }
 
     public function getSuppliers()
@@ -326,15 +344,23 @@ class PurchaseOrder extends BaseController
 
             $this->ModelPoHd->hitungGrandTotal($headerId);
 
-            $this->db->transCommit();
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => 0,
+                    'pesan' => 'Gagal menyimpan detail transaksi'
+                ]);
+            } else {
+                $this->db->transCommit();
 
-            log_message('debug', 'addDetail success, message: ' . $message);
-            return $this->response->setJSON([
-                'sukses' => 1,
-                'pesan' => $message,
-                'csrfToken' => csrf_hash(),
-                'grandtotal' => $this->ModelPoHd->getGrandTotal($headerId)
-            ]);
+                log_message('debug', 'addDetail success, message: ' . $message);
+                return $this->response->setJSON([
+                    'sukses' => 1,
+                    'pesan' => $message,
+                    'csrfToken' => csrf_hash(),
+                    'grandtotal' => $this->ModelPoHd->getGrandTotal($headerId)
+                ]);
+            }
         } catch (\Throwable $e) {
             $this->db->transRollback();
             log_message('error', 'updateDetail error: ' . $e->getMessage());
@@ -376,14 +402,22 @@ class PurchaseOrder extends BaseController
             $this->ModelPoHd->updateDetail($data, $detailId);
             $this->ModelPoHd->hitungGrandTotal($headerId);
 
-            $this->db->transCommit();
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => 0,
+                    'pesan' => 'Gagal mengupdate detail transaksi'
+                ]);
+            } else {
+                $this->db->transCommit();
 
-            log_message('debug', 'updateDetail success for id: ' . $detailId);
-            return $this->response->setJSON([
-                'sukses' => 1,
-                'pesan' => 'Detail updated',
-                'csrfToken' => csrf_hash()
-            ]);
+                log_message('debug', 'updateDetail success for id: ' . $detailId);
+                return $this->response->setJSON([
+                    'sukses' => 1,
+                    'pesan' => 'Detail updated',
+                    'csrfToken' => csrf_hash()
+                ]);
+            }
         } catch (\Throwable $e) {
             $this->db->transRollback();
 
@@ -397,22 +431,36 @@ class PurchaseOrder extends BaseController
     public function deleteDetail()
     {
         log_message('debug', 'deleteDetail called with: ' . json_encode($this->request->getPost()));
+
+        $this->db->transBegin();
+
         try {
             $detailId = $this->request->getPost('id');
             log_message('debug', 'detailId: ' . $detailId);
             if (empty($detailId)) throw new Exception('Detail ID required');
 
-            $detail = $this->db->table('trpurchaseorderdt')->select('headerid')->where('id', $detailId)->get()->getRowArray();
-            log_message('debug', 'detail query result: ' . json_encode($detail));
-            if (!$detail) throw new Exception('Detail not found');
-
-            $headerId = $detail['headerid'];
+            $headerId = $this->ModelPoHd->getDetailHeaderId($detailId);
+            if (!$headerId) throw new Exception('Detail not found');
             log_message('debug', 'headerId: ' . $headerId);
             $this->ModelPoHd->deleteDetail($detailId);
             $this->ModelPoHd->hitungGrandTotal($headerId);
 
-            return $this->response->setJSON(['sukses' => 1, 'pesan' => 'Detail deleted', 'csrfToken' => csrf_hash()]);
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => 0,
+                    'pesan' => 'Gagal menghapus detail transaksi'
+                ]);
+            } else {
+                $this->db->transCommit();
+                return $this->response->setJSON([
+                    'sukses' => 1,
+                    'pesan' => 'Detail deleted',
+                    'csrfToken' => csrf_hash()
+                ]);
+            }
         } catch (Exception $e) {
+            $this->db->transRollback();
             log_message('error', 'deleteDetail error: ' . $e->getMessage());
             return $this->response->setJSON(['sukses' => 0, 'pesan' => $e->getMessage()]);
         }
