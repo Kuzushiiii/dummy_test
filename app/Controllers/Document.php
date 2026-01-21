@@ -47,11 +47,18 @@ class Document extends BaseController
         $table->updateRow(function ($db, $no) {
             $btn_edit = "<button type='button' class='btn btn-sm btn-warning' onclick=\"modalForm('Update document - " . $db->documentname . "', 'modal-lg', '" . getURL('document/form/' . encrypting($db->id)) . "', {identifier: this})\"><i class='bx bx-edit-alt'></i></button>";
             $btn_hapus = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete document - " . $db->documentname . "', {'link':'" . getURL('document/delete') . "', 'id':'" . encrypting($db->id) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
+            $file = !empty($db->filepath)
+                ? "<div style='display:flex;align-items:center;justify-content:center;'>
+         <a href='" . base_url($db->filepath) . "' class='btn btn-sm btn-outline-primary' target='_blank'>
+            <i class='bx bx-download' style='color:black; margin-right: 10px;'>Download Dokumen</i>
+         </a>
+       </div>"
+                : "<div style='text-align:center;'>-</div>";
             return [
                 $no,
                 $db->documentname,
                 $db->description,
-                $db->filepath,
+                $file,
                 "<div style='display:flex;align-items:center;justify-content:center;'>$btn_edit&nbsp;$btn_hapus</div>"
             ];
         });
@@ -101,8 +108,8 @@ class Document extends BaseController
 
             // Generate nama file unik untuk filepath
             $newName = $filepath->getRandomName();
-            $filepath->move('uploads/document', $newName);
-            $filePath = 'uploads/document' . $newName;
+            $filepath->move('uploads/document/', $newName);
+            $filePath = 'uploads/document/' . $newName;
 
             $this->MDocument->store([
                 'documentname' => $documentname,
@@ -174,7 +181,7 @@ class Document extends BaseController
 
             // Generate nama file unik untuk file baru
             $newName = $filepath->getRandomName();
-            $filepath->move('uploads/document', $newName);
+            $filepath->move('uploads/document/', $newName);
             $data['filepath'] = 'uploads/document/' . $newName; // Update file path di database
         }
 

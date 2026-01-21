@@ -8,6 +8,13 @@
         border-radius: 5rem;
         padding: 2px;
     }
+
+    @media (max-width: 768px) {
+        .btn-logout {
+            display: none !important;
+        }
+        
+    }
 </style>
 <aside>
     <div class="sidebar">

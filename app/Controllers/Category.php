@@ -92,7 +92,7 @@ class Category extends BaseController
                     $no,
                     $db->categoryname,
                     $db->description,
-                    $db->filepath,
+                    "<center><img src='" . base_url($db->filepath) . "' alt='Category Image' width='50' height='50'/></center>",
                     "<div style='display:flex;align-items:center;justify-content:center;'>$btn_edit&nbsp;$btn_hapus</div>"
                 ];
             });

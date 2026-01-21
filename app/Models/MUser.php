@@ -33,12 +33,12 @@ class MUser extends Model
 
     public function getByName($name)
     {
-        return $this->builder->where("lower(username)", strtolower($name))->get()->getRowArray();
+        return $this->dbs->table('msuser')->where('LOWER(username)', strtolower($name))->get()->getRowArray();
     }
 
     public function getOne($userid)
     {
-        return $this->builder->where("id", $userid)->get()->getRowArray();
+        return $this->dbs->table('msuser')->where('id', $userid)->get()->getRowArray();
     }
 
     public function store($data)

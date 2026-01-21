@@ -47,7 +47,7 @@ class Product extends BaseController
             $btn_hapus = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete Product - " . $db->productname . "', {'link':'" . getURL('product/delete') . "', 'id':'" . encrypting($db->id) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
 
             $foto_product = !empty($db->filepath)
-                ? "<img src='" . htmlspecialchars($db->filepath) .  "' alt='foto product' width='50' style='border-radius: 50%; object-fit: cover;'>"
+                ? "<center><img src='" . htmlspecialchars($db->filepath) .  "' alt='foto product' width='50' style='border-radius: 50%; object-fit: cover;'></center>"
                 : "<img( src:'path/to/default.png' alt='foto product' width='50' height:'50' style='border-radius:50%; object-fit: cover;'>";
             return [
                 $no,

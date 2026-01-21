@@ -89,8 +89,9 @@ class Customer extends BaseController
             $btn_hapus = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete Customer - " . $db->customername . "', {'link':'" . getURL('customer/delete') . "', 'id':'" . encrypting($db->id) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
 
             $foto_profil = !empty($db->filepath)
-                ? "<img src='" . htmlspecialchars($db->filepath) . "' alt='Foto Profil' width='50' height='50' style='border-radius: 50%; object-fit: cover;'>"
-                : "<img src='path/to/default-image.png' alt='Foto Profil Default' width='50' height='50' style='border-radius: 50%; object-fit: cover;'>";
+                ? "<center><img src='" . htmlspecialchars($db->filepath) . "' alt='Foto Profil' width='50' height='50' style='border-radius: 50%; object-fit: cover;'></center>"
+                : "<center><img src='/images/avatar/avatar-0.png' alt='Foto Profil Default' width='50' height='50' style='border-radius: 50%; object-fit: cover;'></center>";
+
 
             return [
                 $no,
@@ -131,7 +132,8 @@ class Customer extends BaseController
         $email = $this->request->getPost('email');
         $res = array();
 
-        $this->customerModel->transBegin();
+        $db = db_connect();
+        $db->transBegin();
         try {
             if (!$foto->isValid()) throw new Exception("Foto tidak valid!");
             if (empty($nama)) throw new Exception("Nama dibutuhkan!");
@@ -173,7 +175,7 @@ class Customer extends BaseController
                 'pesan' => 'Sukses menambahkan Customer',
                 'dbError' => db_connect()
             ];
-            $this->customerModel->transCommit();
+            $db->transCommit();
         } catch (Exception $e) {
             $res = [
                 'sukses' => '0',
@@ -183,75 +185,46 @@ class Customer extends BaseController
             ];
             $this->customerModel->transRollback();
         }
-        $this->customerModel->transComplete();
+        $db->transComplete();
         echo json_encode($res);
     }
 
     public function updateData()
     {
-        $customerid = $this->request->getPost('customerid');
-        $foto = $this->request->getFile('foto');
-        $nama = $this->request->getPost('nama');
-        $alamat = $this->request->getPost('alamat');
-        $telepon = $this->request->getPost('telepon');
-        $email = $this->request->getPost('email');
-        $res = array();
+        $db = db_connect();
+        $db->transBegin();
 
-        $this->customerModel->transBegin();
         try {
-            if (empty($customerid)) throw new Exception("ID customer tidak ditemukan!");
-            if (empty($nama)) throw new Exception("Nama masih kosong!");
-            if (empty($alamat)) throw new Exception("Alamat masih kosong!");
-            if (empty($telepon)) throw new Exception("Telepon masih kosong!");
-            if (empty($email)) throw new Exception("Email masih kosong!");
+            $customerid = decrypting($this->request->getPost('customerid'));
+            if (!$customerid) throw new Exception("ID customer tidak ditemukan!");
 
             $data = [
-                'customername' => $nama,
-                'address' => $alamat,
-                'phone' => $telepon,
-                'email' => $email,
+                'customername' => $this->request->getPost('nama'),
+                'address' => $this->request->getPost('alamat'),
+                'phone' => $this->request->getPost('telepon'),
+                'email' => $this->request->getPost('email'),
                 'updateddate' => date('Y-m-d H:i:s'),
                 'updatedby' => getSession('userid'),
             ];
 
-            if ($foto->isValid()) {
-                // Validasi ekstensi file
-                $allowedExtensions = ['jpg', 'jpeg', 'png'];
-                $extension = $foto->getExtension();
-                if (!in_array($extension, $allowedExtensions)) {
-                    throw new Exception("Format foto tidak valid, hanya jpg, jpeg, dan png yang diperbolehkan!");
-                }
+            $foto = $this->request->getFile('foto');
+            if ($foto && $foto->isValid()) {
+                $old = $this->customerModel->getOne($customerid);
+                if ($old && file_exists($old['filepath'])) unlink($old['filepath']);
 
-                // Hapus file lama jika ada
-                $oldFilePath = $this->customerModel->getOne($customerid)['filepath'];
-                if (file_exists($oldFilePath)) {
-                    unlink($oldFilePath);
-                }
-
-                // Simpan file baru
                 $newName = $foto->getRandomName();
                 $foto->move('uploads/customers/', $newName);
                 $data['filepath'] = 'uploads/customers/' . $newName;
             }
 
             $this->customerModel->edit($data, $customerid);
-            $res = [
-                'sukses' => '1',
-                'pesan' => 'Sukses update user baru',
-                'dbError' => db_connect()
-            ];
-            $this->db->transCommit();
+            $db->transCommit();
+
+            echo json_encode(['sukses' => '1', 'pesan' => 'Update berhasil']);
         } catch (Exception $e) {
-            $res = [
-                'sukses' => '0',
-                'pesan' => $e->getMessage(),
-                'traceString' => $e->getTraceAsString(),
-                'dbError' => db_connect()->error()
-            ];
-            $this->db->transRollback();
+            $db->transRollback();
+            echo json_encode(['sukses' => '0', 'pesan' => $e->getMessage()]);
         }
-        $this->db->transComplete();
-        echo json_encode($res);
     }
 
     public function deleteData()
@@ -460,22 +433,7 @@ class Customer extends BaseController
 
     public function logOut()
     {
-        $this->db->transBegin();
-        try {
-            session()->destroy();
-            $res = [
-                'sukses' => '1',
-                'pesan' => 'Berhasil Logout',
-                'link' => ('login/v_login')
-            ];
-        } catch (Exception $e) {
-            $res = [
-                'sukses' => '0',
-                'pesan' => $e->getMessage(),
-                'traceString' => $e->getTraceAsString()
-            ];
-        }
-        $this->db->transComplete();
-        echo json_encode($res);
+        session()->destroy();
+        return redirect()->to(base_url('login'));
     }
 }

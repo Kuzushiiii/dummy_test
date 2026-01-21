@@ -34,7 +34,7 @@
                     <h5><?= ($title == 'Job To Do' ? 'Dashboard' : $title) ?></h5>
                 </div>
                 <div class="bells">
-                    <i class="bx bxs-bell" onclick="return toPage('user/notif')"></i>
+                    <i class="bx bxs-bell" onclick="return toPage('/notif')"></i>
                     <span class="bg-warning">6</span>
                 </div>
                 <div class="dps">
@@ -65,7 +65,7 @@
                             <div class="card rounded bg-white w-100" style="padding: 0px;">
                                 <div class="card bg-primary-40 w-100 p-x p-y-3 dflex align-center justify-center">
                                     <div class="dflex align-center">
-                                        <img src="<?= getURL('public/images/dashboard/new.png') ?>" width="60" alt="">
+                                        <img src="<?= getURL('/images/dashboard/new.png') ?>" width="60" alt="">
                                         <div class="row text-primary" style="margin-left: 20px;">
                                             <span class="fw-semibold fs-5">New Order</span>
                                             <span class="fw-semibold fs-6">6</span>
@@ -79,7 +79,7 @@
                                 <div class="card bg-violet-40 w-100">
                                     <div class="row text-violet">
                                         <div class="col-12 dflex justify-center">
-                                            <img src="<?= getURL('public/images/dashboard/process.png') ?>" width="45" alt="">
+                                            <img src="<?= getURL('/images/dashboard/process.png') ?>" width="45" alt="">
                                         </div>
                                         <div class="col-12">
                                             <div class="row text-center">
@@ -96,7 +96,7 @@
                                 <div class="card bg-warning-40 w-100">
                                     <div class="row text-warning">
                                         <div class="col-12 dflex justify-center">
-                                            <img src="<?= getURL('public/images/dashboard/delivery.png') ?>" width="45" alt="">
+                                            <img src="<?= getURL('/images/dashboard/delivery.png') ?>" width="45" alt="">
                                         </div>
                                         <div class="col-12">
                                             <div class="row text-center">
@@ -113,7 +113,7 @@
                                 <div class="card bg-success-40 w-100">
                                     <div class="row text-success">
                                         <div class="col-12 dflex justify-center">
-                                            <img src="<?= getURL('public/images/dashboard/delivered.png') ?>" width="45" alt="">
+                                            <img src="<?= getURL('/images/dashboard/delivered.png') ?>" width="45" alt="">
                                         </div>
                                         <div class="col-12">
                                             <div class="row text-center">
@@ -130,7 +130,7 @@
                                 <div class="card bg-danger-40 w-100">
                                     <div class="row text-danger">
                                         <div class="col-12 dflex justify-center">
-                                            <img src="<?= getURL('public/images/dashboard/cancel.png') ?>" width="45" alt="">
+                                            <img src="<?= getURL(' /images/dashboard/cancel.png') ?>" width="45" alt="">
                                         </div>
                                         <div class="col-12">
                                             <div class="row text-center">
@@ -191,6 +191,14 @@
                     <style>
                         .dropdown-content.bell .dropdown-item {
                             align-items: start !important;
+                            display: flex !important;
+                        }
+
+                        @media (max-width: 768px) {
+                            .dropdown-content.bell .dropdown-item {
+                                display: flex !important;
+                                align-items: start !important;
+                            }
                         }
                     </style>
                     <div class="dropdown-content bell" style="width: 300px">

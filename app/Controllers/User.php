@@ -16,6 +16,7 @@ class User extends BaseController
     protected $db;
     public function __construct()
     {
+        helper('primary_helper');
         $this->userModel = new MUser();
         $this->bc = [
             [
@@ -305,12 +306,8 @@ class User extends BaseController
 
     public function logOut()
     {
-        $userid = session()->get('userid');
-        $row = $this->userModel->getOne($userid);
-        if (!empty($row)) {
-            destroySession();
-        }
-        return redirect('login');
+        session()->destroy();
+        return redirect()->to(base_url('login'));
     }
 
     public function printPDF()

@@ -1,8 +1,6 @@
 <form id="form-customer" style="padding-inline: 0px;" enctype="multipart/form-data">
     <div class="form-group">
-        <?php if ($form_type == 'edit') { ?>
-            <input type="hidden" id="customerid" name="customerid" value="<?= $id ?>">
-        <?php } ?>
+        <input type="hidden" name="customerid" value="<?= esc($id ?? '') ?>">
         <label for="name">Foto Customer : </label>
         <input type="file" class="form-input fs-7" id="foto" name="foto" accept=".jpg,.jpeg,.png" <?= ($form_type == 'edit' ? '' : 'required') ?>>
     </div>
@@ -105,7 +103,6 @@
                 showError(thrownError + ", please contact administrator for further assistance.");
             }
         });
-        return false;
     });
 });
 </script>
