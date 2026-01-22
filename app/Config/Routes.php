@@ -115,7 +115,7 @@ $routes->group('product', function ($routes) {
 });
 // -------------------------------------------------------->
 // Log Out
-$routes->add('/logout', 'User::logOut');
+$routes->get('/logOut', 'User::logOut');
 
 //Export to excel routes
 $routes->get('Document/export', 'Document::export');

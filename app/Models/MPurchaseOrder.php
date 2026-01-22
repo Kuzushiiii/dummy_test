@@ -46,8 +46,12 @@ class MPurchaseOrder extends Model
     public function datatable()
     {
         $builder = $this->db->table($this->table . ' as poh');
-        $builder->select('poh.*, mssupplier.suppliername')
+
+        $builder->select('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername, 
+                      COALESCE(SUM(CASE WHEN dt.isactive = true THEN dt.qty * dt.price ELSE 0 END), 0) as grandtotal')
             ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
+            ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left')
+            ->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername')
             ->orderBy('poh.transcode', 'ASC');
 
         return $builder;
@@ -60,17 +64,17 @@ class MPurchaseOrder extends Model
 
     public function store($data)
     {
-        return $this->builder->insert($data);
+        return $this->db->table($this->table)->insert($data);    
     }
 
     public function edit($data, $id)
     {
-        return $this->builder->update($data, ['id' => $id]);
+        return $this->db->table($this->table)->update($data, ['id' => $id]);
     }
 
     public function destroy($column, $value)
     {
-        return $this->builder->delete([$column => $value]);
+        return $this->db->table($this->table)->delete([$column => $value]);
     }
 
     //kumpulan fungsi untuk bagian purchaseorder detail
@@ -133,7 +137,7 @@ class MPurchaseOrder extends Model
                 esc($row['qty']),
                 number_format($row['price'], 2, ',', '.'),
                 number_format($row['qty'] * $row['price'], 2, ',', '.'),
-                '<button class="btn btn-sm btn-warning" onclick="editDetail(' . $row['id'] . ', \'' . $row['productid'] . '\', \'' . $row['uomid'] . '\', \'' . $row['qty'] . '\', \'' . $row['price'] . '\', \'' . addslashes($row['productname']) . '\')"><i class="bx bx-edit-alt"></i></button> ' .
+                '<button class="btn btn-sm btn-warning" onclick="editDetail(' . $row['id'] . ', \'' . $row['productid'] . '\', \'' . $row['uomid'] . '\', \'' . $row['qty'] . '\', \'' . $row['price'] . '\', \'' . addslashes($row['productname']) . '\', \'' . addslashes($row['uomnm']) . '\')"><i class="bx bx-edit-alt"></i></button> ' .
                 '<button class="btn btn-sm btn-danger" onclick="modalDelete(\'Hapus Detail Purchase Order - ' . addslashes($row['productname']) . '\', {\'link\':\'' . getURL('purchaseorder/deleteDetail') . '\', \'id\':\'' . $row['id'] . '\', \'pagetype\':\'table\', \'table-id\':\'detailsTable\'})"><i class="bx bx-trash"></i></button>'
             ];
         }, $data);
@@ -198,7 +202,7 @@ class MPurchaseOrder extends Model
         $builder = $this->db->table('mssupplier')
             ->select('id, suppliername as text');
         if ($search) {
-            $builder->like('suppliername', $search);
+            $builder->like('LOWER(suppliername)', strtolower($search));
         }
         $query = $builder->orderBy('suppliername', 'ASC');
         if ($limit > 0) {
@@ -212,7 +216,7 @@ class MPurchaseOrder extends Model
         $builder = $this->db->table('msproduct')
             ->select('id, productname as text, price');
         if ($search) {
-            $builder->like('productname', $search);
+            $builder->like('LOWER(productname)', strtolower($search));
         }
         $query = $builder->orderBy('productname', 'ASC');
         if ($limit > 0) {
@@ -227,7 +231,7 @@ class MPurchaseOrder extends Model
             ->select('id, uomnm as text')
             ->where('isactive', true);
         if ($search) {
-            $builder->like('uomnm', $search);
+            $builder->like('LOWER(uomnm)', strtolower($search));
         }
         $query = $builder->orderBy('uomnm', 'ASC');
         if ($limit > 0) {

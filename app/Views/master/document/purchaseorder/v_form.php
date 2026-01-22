@@ -17,7 +17,7 @@
         z-index: 1050;
     }
 </style>
-<form id="form-purchaseorder" enctype="multipart/form-data" method="post" action="<?= ($form_type == 'edit' ? getURL('purchaseorder/update') : getURL('purchaseorder/add')) ?>" onsubmit="this.querySelector('button[type=submit]').disabled = true;">
+<form id="form-purchaseorder" enctype="multipart/form-data">
     <div class="form-group">
         <?php if ($form_type == 'edit') { ?>
             <input type="hidden" id="purchaseorderid" name="purchaseOrderId" value="<?= $id ?>">
@@ -52,17 +52,17 @@
         <label>Description :</label>
         <textarea class="form-input fs-7" id="description" name="description" placeholder="Masukan Deskripsi" rows="3"><?= (($form_type == 'edit') ? esc($row['description']) : '') ?></textarea>
     </div>
-
-        <div class="modal-footer">
-            <button type="button" class="btn btn-warning dflex align-center" onclick="return resetForm('form-purchaseorder')">
-                <i class="bx bx-revision margin-r-2"></i>
-                <span class="fw-normal fs-7">Reset</span>
-            </button>
-            <button type="submit" id="btn-submit" class="btn btn-primary dflex align-center">
-                <i class="bx bx-check margin-r-2"></i>
-                <span class="fw-normal fs-7"><?= ($form_type == 'edit' ? 'Update' : 'Save') ?></span>
-            </button>
-        </div>
+    <input type="hidden" id="csrf_token_form" name="<?= csrf_token() ?>">
+    <div class="modal-footer">
+        <button type="button" class="btn btn-warning dflex align-center" onclick="return resetForm('form-purchaseorder')">
+            <i class="bx bx-revision margin-r-2"></i>
+            <span class="fw-normal fs-7">Reset</span>
+        </button>
+        <button type="button" id="btn-submit" class="btn btn-primary dflex align-center">
+            <i class="bx bx-check margin-r-2"></i>
+            <span class="fw-normal fs-7"><?= ($form_type == 'edit' ? 'Update' : 'Save') ?></span>
+        </button>
+    </div>
 </form>
 
 <?php if ($form_type == 'edit') : ?>
@@ -146,25 +146,24 @@
 
 
 <script>
-    $('#btn-submit').off('click').on('click', function() {
+    $('#btn-submit-detail').off('click').on('click', function() {
         const $btn = $(this);
         $btn.prop('disabled', true);
 
-        $.post($('#form-purchaseorder').attr('action'), $('#form-purchaseorder').serialize(), function(res) {
+        $.post($('#form-detail').attr('action'), $('#form-detail').serialize(), function(res) {
             $btn.prop('disabled', false);
+
             if (res.sukses == 1) {
-                // tutup modal (ubah '#modalAdd' sesuai id modalmu)
-                $('#modalAdd').modal('hide');
+                $('#modaldetail').modal('hide');
 
-                // reload DataTable header. Pastikan nama variabel datatable header sama
-                if (typeof purchaseOrderTable !== 'undefined') {
-                    purchaseOrderTable.ajax.reload(null, false);
-                } else {
-                    // fallback: reload halaman kalau datatable header tidak tersedia
-                    window.location.reload();
-                }
+                // beri delay 100ms supaya grandtotal di DB sudah update
+                setTimeout(function() {
+                    if (window.purchaseOrderTable) {
+                        window.purchaseOrderTable.ajax.reload(null, false);
+                        console.log('DataTable header reloaded');
+                    }
+                }, 120);
 
-                if (res.csrfToken) $('#csrf_token_form').val(res.csrfToken);
                 showNotif('success', res.pesan || 'Tersimpan');
             } else {
                 showNotif('error', res.pesan || 'Gagal menyimpan');
@@ -174,6 +173,7 @@
             showError('Error: ' + (xhr.responseText || xhr.statusText));
         });
     });
+
 
     /** ---------- Inisialisasi DataTable ---------- **/
     if ($.fn.DataTable.isDataTable('#detailsTable')) {
@@ -227,14 +227,12 @@
         language: {
             search: "Search details:"
         },
-        drawCallback: function() {
-            calculateGrandTotal();
-        }
+
     });
 
-    generateSelect2('#supplierid', '#form-purchaseorder', '<?= getURL('purchaseorder/getsuppliers') ?>', 'Pilih Supplier');
-    generateSelect2('#productid', '#modaldetail', '<?= getURL('purchaseorder/getproducts') ?>', 'Pilih Product');
-    generateSelect2('#uomid', '#modaldetail', '<?= getURL('purchaseorder/getuoms') ?>', 'Pilih UOM');
+    generateSelect2('#supplierid', '#form-purchaseorder', '<?= base_url('purchaseorder/getsuppliers') ?>', 'Pilih Supplier');
+    generateSelect2('#productid', '#modaldetail', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product');
+    generateSelect2('#uomid', '#modaldetail', '<?= base_url('purchaseorder/getuoms') ?>', 'Pilih UOM');
 
     function ensureSelectOption($select, id, text) {
         if ($select.find("option[value='" + id + "']").length === 0) {
@@ -262,13 +260,13 @@
     $('#qty, #price').on('input', calculateTotal);
 
     /** ---------- fungsi edit dipanggil dari action column ---------- **/
-    function editDetail(id, productId, uomId, qty, price, productName = '') {
+    function editDetail(id, productId, uomId, qty, price, productName = '', uomName = '') {
         console.log('editDetail called with id:', id);
 
         try {
             // pastikan select2 punya option agar menampilkan label. Jika generateSelect2 load async,
             ensureSelectOption($('#productid'), productId, productName);
-            ensureSelectOption($('#uomid'), uomId, '');
+            ensureSelectOption($('#uomid'), uomId, uomName);
 
             $('#productid').val(productId).trigger('change');
             $('#uomid').val(uomId).trigger('change');
@@ -346,9 +344,16 @@
             $('#add-detail-btn').prop('disabled', false);
             if (res.sukses == 1) {
                 resetDetailForm();
-                detailsTbl.ajax.reload(function() {
-                    calculateGrandTotal();
-                }, false);
+                detailsTbl.ajax.reload(null, false);
+                // Reload header table (purchase order list) with delay
+                setTimeout(function() {
+                    if (window.purchaseOrderTable) {
+                        window.purchaseOrderTable.ajax.reload(null, false);
+                    }
+                }, 120);
+                if (res.grandtotal !== undefined) {
+                    $('#grandTotal').val(parseFloat(res.grandtotal).toFixed(2));
+                }
                 if (res.csrfToken) {
                     $('#csrf_token').val(encrypter(res.csrfToken));
                 }
@@ -361,5 +366,52 @@
             $('#add-detail-btn').prop('disabled', false);
             showError('Error: ' + (xhr.responseText || xhr.statusText));
         });
+    });
+
+    /** ---------- Handle Header Form Submission ---------- **/
+    $('#btn-submit').click(function () {
+        $('#form-purchaseorder').trigger('submit');
+    });
+
+    $('#form-purchaseorder').on('submit', function (e) {
+        e.preventDefault();
+        let csrf = decrypter($("#csrf_token").val());
+        $("#csrf_token").val(csrf);
+        let form_type = '<?= $form_type ?>';
+        let link = '<?= getURL('purchaseorder/add') ?>';
+        if (form_type == 'edit') {
+            link = '<?= getURL('purchaseorder/update') ?>';
+        }
+        let formData = new FormData(this);
+        $.ajax({
+            type: 'POST',
+            url: link,
+            data: formData,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            success: function (response) {
+                $("#csrf_token").val(encrypter(response.csrfToken));
+                $("#csrf_token_form").val("");
+                let pesan = response.pesan;
+                let notif = 'success';
+                if (response.sukses != '1') {
+                    notif = 'error';
+                }
+                showNotif(notif, pesan);
+                if (response.sukses == '1') {
+                    close_modal('modaldetail');
+                    if (window.purchaseOrderTable) {
+                        window.purchaseOrderTable.ajax.reload(null, false);
+                    }
+                }
+                $('#btn-submit').prop('disabled', false);
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                $('#btn-submit').prop('disabled', false);
+                showError('Error: ' + (xhr.responseText || xhr.statusText));
+            }
+        });
+        $('#btn-submit').prop('disabled', true);
     });
 </script>

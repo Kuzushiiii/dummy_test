@@ -5,7 +5,7 @@
 <input type="hidden" id="csrf_token" value="<?= base_encode(csrf_hash()) ?>">
 <input type="hidden" id="list_dtids" value="">
 </body>
-<script src="<?= base_url('public/js/ckeditor5.js') ?>"></script>
+<script src="<?= base_url('js/ckeditor5.js') ?>"></script>
 <!-- Modal Preview -->
 <div class="modal fade" id="modalprev" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="modalprevLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
@@ -280,7 +280,7 @@
             <div class="modal-body dflex align-center justify-center">
                 <div class="text-center p-y-2">
                     <h5 class="modal-title text-danger" id="errorModalInfoLabel">Internal Server Error !</h5>
-                    <img src="<?= base_url('public/icon/error-icon.png') ?>" width="200px">
+                    <img src="<?= base_url('icon/error-icon.png') ?>" width="200px">
                     <h6>Reload your page or contact administrator for the further</h6>
                 </div>
             </div>
@@ -906,6 +906,7 @@
             }
         }
     })
+    window.purchaseOrderTable = tbl;
 
     let tbl_history = $('.tbl-history').DataTable({
         serverSide: true,
@@ -943,7 +944,7 @@
         } else {
             showSuccess('Logging out . . .')
             setTimeout(() => {
-                window.location.href = '<?= getURL('User/logOut') ?>';
+                window.location.href = '<?= getURL('/logOut') ?>';
             }, 150);
         }
     }
@@ -1143,11 +1144,20 @@
                                 // dp('#' + reloadpage);
                             })
                         } else if (pagetype == 'table') {
-                            if (table_cls == 'detailsTable') {
-                                if (typeof detailsTbl !== 'undefined') {
-                                    detailsTbl.ajax.reload(null, false);
+                        if (table_cls == 'detailsTable') {
+                            if (typeof detailsTbl !== 'undefined') {
+                                detailsTbl.ajax.reload(null, false);
+                            }
+                            if (res.grandtotal !== undefined) {
+                                $('#grandTotal').val(parseFloat(res.grandtotal).toFixed(2));
+                            }
+                            // Reload header table (purchase order list) with delay
+                            setTimeout(function() {
+                                if (window.purchaseOrderTable) {
+                                    window.purchaseOrderTable.ajax.reload(null, false);
                                 }
-                            } else {
+                            }, 120);
+                        } else {
                                 tbl.ajax.reload();
                                 if (typeof tbls !== 'undefined') {
                                     tbls.ajax.reload();
