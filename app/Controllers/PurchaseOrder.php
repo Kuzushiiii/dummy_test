@@ -53,7 +53,7 @@ class PurchaseOrder extends BaseController
         $table = Datatables::method([MPurchaseOrder::class, 'datatable'], 'searchable')->make();
 
         $table->updateRow(function ($db, $no) {
-            $btn_edit = "<button type='button' class='btn btn-sm btn-warning' onclick=\"modalForm('Edit Purchase Order - " . $db->transcode . "', 'modal-lg', '" . getURL('purchaseorder/form/' . encrypting($db->id)) . "', {identifier: this})\"><i class='bx bx-edit-alt'></i></button>";
+            $btn_edit = "<button type='button' class='btn btn-sm btn-warning me-1' onclick=\"window.location.href='" . getURL('purchaseorder/form/' . encrypting($db->id)) . "'\"><i class='bx bx-edit-alt'></i></button>";
             $btn_hapus = '<button type="button" class="btn btn-sm btn-danger" onclick="modalDelete(\'Delete Purchase Order - ' . addslashes($db->transcode) . '\', {\'link\':\'' . getURL('purchaseorder/deleteData') . '\', \'id\':\'' . encrypting($db->id) . '\', \'pagetype\':\'table\'})"><i class=\'bx bx-trash\'></i></button>';
             return [
                 $no,
@@ -64,7 +64,9 @@ class PurchaseOrder extends BaseController
                 number_format($db->grandtotal ?? 0, 2, ',', '.'),
                 esc($db->description),
                 $btn_edit . ' ' . $btn_hapus
+                
             ];
+            
         });
         $table->toJson();
     }
@@ -95,12 +97,17 @@ class PurchaseOrder extends BaseController
             $row = $this->ModelPoHd->getOne($id) ?? [];
         }
 
-        $dt['view'] = view('master/document/purchaseorder/v_form', [
+        $title = ($form_type == 'edit') ? 'Edit Purchase Order' : 'Add Purchase Order';
+
+        return view('master/document/purchaseorder/v_forms', [
+            'title' => $title,
+            'breadcrumb' => $this->bc,
+            'section' => 'Document',
             'form_type' => $form_type,
             'row' => $row,
             'id' => $id,
             'suppliers' => $suppliers,
-            'details' => $details
+            'details' => $details ?? []
         ]);
 
         $dt['csrfToken'] = csrf_hash();
@@ -144,11 +151,12 @@ class PurchaseOrder extends BaseController
                     'pesan' => 'Gagal menyimpan data transaksi'
                 ]);
             } else {
+                
                 $this->db->transCommit();
                 return $this->response->setJSON([
                     'sukses' => '1',
                     'pesan' => 'Data berhasil disimpan.',
-                    'csrfToken' => csrf_hash()
+                    'csrfToken' => csrf_hash(),
                 ]);
             }
         } catch (Exception $e) {

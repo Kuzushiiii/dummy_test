@@ -3,10 +3,10 @@
 <div class="main-content content margin-t-4">
     <div class="card p-x shadow-sm w-100">
         <div class="card-header dflex align-center justify-end" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-            <button class="btn btn-primary dflex align-center" onclick="return modalForm('Tambah Purchase Order', 'modal-lg', '<?= getURL('purchaseorder/form') ?>')">
+            <a href="<?= base_url('purchaseorder/form') ?>" class="btn btn-primary dflex align-center">
                 <i class="bx bx-plus-circle margin-r-2"></i>
                 <span class="fw-normal fs-7">Add New</span>
-            </button>
+            </a>
         </div>
         <div class="card-body" style="background-color: #ffffff;">
             <div class="table-responsive margin-t-14p">
