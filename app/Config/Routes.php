@@ -138,7 +138,7 @@ $routes->group('purchaseorder', function ($routes) {
     $routes->post('adddetail', 'PurchaseOrder::addDetail');
     $routes->post('saveDetail', 'PurchaseOrder::saveDetail');
     $routes->get('edit/(:alphanum)', 'PurchaseOrder::forms/$1');
-    $routes->get('editdetail/(:num)', 'PurchaseOrder::editDetail/$1');
     $routes->post('updatedetail', 'PurchaseOrder::updateDetail');
     $routes->post('deleteDetail', 'PurchaseOrder::deleteDetail');
+    $routes->get('editDetailModal/(:num)', 'PurchaseOrder::editDetailModal/$1');
 });

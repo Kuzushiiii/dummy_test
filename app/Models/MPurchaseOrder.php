@@ -90,6 +90,18 @@ class MPurchaseOrder extends Model
             ->getResultArray();
     }
 
+    public function getDetail($detailId)
+    {
+        return $this->db->table('trpurchaseorderdt as dt')
+            ->select('dt.*, p.productname, u.uomnm')
+            ->join('msproduct p', 'p.id = dt.productid', 'left')
+            ->join('msuom u', 'u.id = dt.uomid', 'left')
+            ->where('dt.id', $detailId)
+            ->where('dt.isactive', true)
+            ->get()
+            ->getRowArray();
+    }
+
     public function getDetailHeaderId($detailId)
     {
         return $this->db->table('trpurchaseorderdt')
@@ -134,9 +146,9 @@ class MPurchaseOrder extends Model
             return [
                 esc($row['productname']),
                 esc($row['uomnm']),
-                esc($row['qty']),
-                number_format($row['price'], 2, ',', '.'),
-                number_format($row['qty'] * $row['price'], 2, ',', '.'),
+                esc(rtrim(rtrim(number_format($row['qty'], 0, ',', '.'), '0'), '.')),
+                number_format($row['price'], 0, ',', '.'),
+                number_format($row['qty'] * $row['price'], 0, ',', '.'),
                 '<button class="btn btn-sm btn-warning" onclick="editDetail(' . $row['id'] . ', \'' . $row['productid'] . '\', \'' . $row['uomid'] . '\', \'' . $row['qty'] . '\', \'' . $row['price'] . '\', \'' . addslashes($row['productname']) . '\', \'' . addslashes($row['uomnm']) . '\')"><i class="bx bx-edit-alt"></i></button> ' .
                 '<button class="btn btn-sm btn-danger" onclick="modalDelete(\'Hapus Detail Purchase Order - ' . addslashes($row['productname']) . '\', {\'link\':\'' . getURL('purchaseorder/deleteDetail') . '\', \'id\':\'' . $row['id'] . '\', \'pagetype\':\'table\', \'table-id\':\'detailsTable\'})"><i class="bx bx-trash"></i></button>'
             ];

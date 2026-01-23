@@ -61,7 +61,7 @@ class PurchaseOrder extends BaseController
                 esc($db->transdate),
                 esc($db->supplydate),
                 esc($db->suppliername),
-                number_format($db->grandtotal ?? 0, 2, ',', '.'),
+                number_format($db->grandtotal ?? 2, 0, ',', '.'),
                 esc($db->description),
                 $btn_edit . ' ' . $btn_hapus
                 
@@ -303,6 +303,30 @@ class PurchaseOrder extends BaseController
             'recordsFiltered' => $result['recordsFiltered'],
             'data' => $result['data']
         ]);
+    }
+
+    public function editDetailModal($detailId)
+    {
+        $detail = $this->ModelPoHd->getDetail($detailId);
+        if (!$detail) {
+            return $this->response->setStatusCode(404)->setBody('Detail not found');
+        }
+
+        $products = array_map(function ($p) {
+            return ['id' => $p['id'], 'text' => $p['text']];
+        }, $this->ModelPoHd->getProducts('', 0));
+
+        $uoms = array_map(function ($u) {
+            return ['id' => $u['id'], 'text' => $u['text']];
+        }, $this->ModelPoHd->getUoms('', 0));
+
+        $data = [
+            'detail' => $detail,
+            'products' => $products,
+            'uoms' => $uoms
+        ];
+
+        return view('master/document/purchaseorder/v_edit_detail_modal', $data);
     }
 
     public function addDetail()

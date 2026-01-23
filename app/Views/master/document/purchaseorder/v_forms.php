@@ -113,15 +113,10 @@
             </div>
 
             <div class="modal-footer" style="display:flex; align-items:center;">
-                <div class="row" style="display:flex; align-items:center;">
-                    <button type="button" id="cancel-edit-btn" class="btn btn-secondary dflex align-center margin-r-3" style="display: none; margin-right:100px; background-color:#15432B;">
-                        Kembali ke Tambah
-                    </button>
-                    <button type="button" id="add-detail-btn" class="btn btn-primary dflex align-center margin-r-3">
-                        <i class="bx bx-plus-circle margin-r-2"></i>
-                        <span class="fw-normal fs-7">Add New</span>
-                    </button>
-                </div>
+                <button type="button" id="add-detail-btn" class="btn btn-primary dflex align-center margin-r-3">
+                    <i class="bx bx-plus-circle margin-r-2"></i>
+                    <span class="fw-normal fs-7">Add New</span>
+                </button>
             </div>
         </div>
         <div class="mt-4">
@@ -129,12 +124,12 @@
             <table id="detailsTable" class="table table-striped table-bordered">
                 <thead>
                     <tr>
-                        <th>Product</th>
-                        <th>UOM</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Total</th>
-                        <th>Actions</th>
+                        <th class="tableheader" style="width: 18%;">Product</th>
+                        <th class="tableheader">UOM</th>
+                        <th class="tableheader">Qty</th>
+                        <th class="tableheader">Price</th>
+                        <th class="tableheader">Total</th>
+                        <th class="tableheader">Actions</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -188,6 +183,9 @@
                     orderable: false
                 }
             ],
+            order: [
+                [0, 'asc']
+            ],
             searching: true,
             paging: true,
             lengthMenu: [5, 10, 25],
@@ -229,26 +227,58 @@
 
         /** ---------- fungsi edit dipanggil dari action column ---------- **/
         function editDetail(id, productId, uomId, qty, price, productName = '', uomName = '') {
-            console.log('editDetail called with id:', id);
-
-            try {
-                // pastikan select2 punya option agar menampilkan label. Jika generateSelect2 load async,
-                ensureSelectOption($('#productid'), productId, productName);
-                ensureSelectOption($('#uomid'), uomId, uomName);
-
-                $('#productid').val(productId).trigger('change');
-                $('#uomid').val(uomId).trigger('change');
-                $('#qty').val(qty);
-                $('#price').val(price);
-                calculateTotal();
-
-                // ubah tombol jadi update dan tampilkan tombol batal/reset
-                $('#add-detail-btn').text('Update').removeClass('btn-primary').addClass('btn-warning').prepend('<i class="bx bx-check me-1 margin-r-2"></i>').data('detail-id', id);
-                $('#reset-detail-btn').show();
-                $('#cancel-edit-btn').text('Batal Edit').show();
-            } catch (error) {
-                console.error('Error in editDetail:', error);
-            }
+            $.get('<?= getURL('purchaseorder/editDetailModal') ?>/' + id, function(html) {
+                $('#modaldetail-form').html(html);
+                $('#modaldetail-title').text('Edit Detail');
+                $('#modaldetail').modal('show');
+                // Initialize select2 and events
+                generateSelect2('#modal-productid', '#edit-detail-form', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product');
+                generateSelect2('#modal-uomid', '#edit-detail-form', '<?= base_url('purchaseorder/getuoms') ?>', 'Pilih UOM');
+                $('#modal-qty, #modal-price').on('input', function() {
+                    const qty = parseFloat($('#modal-qty').val()) || 0;
+                    const price = parseFloat($('#modal-price').val()) || 0;
+                    $('#modal-total').val(qty * price);
+                });
+                // Reset function
+                function resetModalDetailForm() {
+                    var form = $('#edit-detail-form');
+                    $('#modal-productid').val(form.data('original-productid')).trigger('change');
+                    $('#modal-uomid').val(form.data('original-uomid')).trigger('change');
+                    $('#modal-qty').val(form.data('original-qty'));
+                    $('#modal-price').val(form.data('original-price'));
+                    $('#modal-total').val(form.data('original-qty') * form.data('original-price'));
+                }
+                $('#reset-modal-detail').on('click', resetModalDetailForm);
+                $('#update-modal-detail').off('click').on('click', function() {
+                    var formData = new FormData(document.getElementById('edit-detail-form'));
+                    formData.append('headerId', '<?= encrypting($id) ?>');
+                    formData.append('id', id);
+                    $.ajax({
+                        url: '<?= getURL('purchaseorder/updatedetail') ?>',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(updateRes) {
+                            if (updateRes.sukses == 1) {
+                                $('#modaldetail').modal('hide');
+                                detailsTbl.ajax.reload(null, false);
+                                if (updateRes.grandtotal !== undefined) {
+                                    $('#grandTotal').val(parseFloat(updateRes.grandtotal).toFixed(2));
+                                }
+                                showNotif('success', updateRes.pesan || 'Detail updated');
+                            } else {
+                                showNotif('error', updateRes.pesan || 'Error updating detail');
+                            }
+                        },
+                        error: function(xhr) {
+                            showNotif('error', 'Error: ' + xhr.responseText);
+                        }
+                    });
+                });
+            }, 'html').fail(function(xhr) {
+                showNotif('error', 'Error loading modal: ' + xhr.statusText);
+            });
         }
 
         /** ---------- reset form detail ---------- **/
@@ -258,25 +288,13 @@
             $('#qty').val('');
             $('#price').val('');
             $('#total').val('');
-            $('#add-detail-btn').text('Add New').removeClass('btn-warning').addClass('btn-primary').removeData('detail-id');
-            $('#reset-detail-btn').hide();
-            $('#cancel-edit-btn').text('Kembali ke Tambah').hide();
         }
 
-        /** ---------- tombol reset & batal ---------- **/
+        /** ---------- tombol reset ---------- **/
         $('#reset-detail-btn').on('click', resetDetailForm);
-        $('#cancel-edit-btn').on('click', function() {
-            // Cancel edit: kembali ke mode add tanpa reset form
-            $('#add-detail-btn').text('Add New').removeClass('btn-warning').addClass('btn-primary').find('i').removeClass('bx-check').addClass('bx-plus-circle').removeData('detail-id');
-            $('#reset-detail-btn').hide();
-            $('#cancel-edit-btn').text('Kembali ke Tambah').hide();
-            $(resetDetailForm);
-        });
 
-        /** ---------- single click handler Add / Update ---------- **/
+        /** ---------- add detail ---------- **/
         $('#add-detail-btn').off('click').on('click', function() {
-            const detailId = $(this).data('detail-id');
-            console.log('detailId from data:', detailId);
             $(this).prop('disabled', true);
             const productId = $('#productid').val();
             const uomId = $('#uomid').val();
@@ -289,8 +307,6 @@
                 return;
             }
 
-            const url = detailId ? '<?= getURL('purchaseorder/updatedetail') ?>' : '<?= getURL('purchaseorder/adddetail') ?>'
-
             const payload = {
                 headerId: '<?= encrypting($id) ?>',
                 productId: productId,
@@ -299,16 +315,7 @@
                 price: price
             };
 
-            console.log('URL:', url);
-
-            if (detailId) {
-                payload.id = detailId;
-            }
-
-            console.log('Payload:', payload);
-
-            $.post(url, payload, function(res) {
-                console.log('Response:', res);
+            $.post('<?= getURL('purchaseorder/adddetail') ?>', payload, function(res) {
                 $('#add-detail-btn').prop('disabled', false);
                 if (res.sukses == 1) {
                     resetDetailForm();
@@ -325,12 +332,11 @@
                     if (res.csrfToken) {
                         $('#csrf_token').val(encrypter(res.csrfToken));
                     }
-                    showNotif('success', res.pesan || (detailId ? 'Detail updated' : 'Detail added'));
+                    showNotif('success', res.pesan || 'Detail added');
                 } else {
                     showNotif('error', res.pesan || 'Terjadi kesalahan');
                 }
             }, 'json').fail(function(xhr) {
-                console.log('Fail response:', xhr.responseText);
                 $('#add-detail-btn').prop('disabled', false);
                 showError('Error: ' + (xhr.responseText || xhr.statusText));
             });
