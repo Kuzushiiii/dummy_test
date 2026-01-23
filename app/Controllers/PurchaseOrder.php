@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Helpers\Datatables\Datatables;
 use App\Models\MPurchaseOrder;
 use Exception;
+use Dompdf\Dompdf;
+
 
 class PurchaseOrder extends BaseController
 {
@@ -55,6 +57,7 @@ class PurchaseOrder extends BaseController
         $table->updateRow(function ($db, $no) {
             $btn_edit = "<button type='button' class='btn btn-sm btn-warning me-1' onclick=\"window.location.href='" . getURL('purchaseorder/form/' . encrypting($db->id)) . "'\"><i class='bx bx-edit-alt'></i></button>";
             $btn_hapus = '<button type="button" class="btn btn-sm btn-danger" onclick="modalDelete(\'Delete Purchase Order - ' . addslashes($db->transcode) . '\', {\'link\':\'' . getURL('purchaseorder/deleteData') . '\', \'id\':\'' . encrypting($db->id) . '\', \'pagetype\':\'table\'})"><i class=\'bx bx-trash\'></i></button>';
+            $btn_print = "<button type='button' class='btn btn-sm btn-info' onclick=\"window.open('" . getURL('purchaseorder/pdf/' . encrypting($db->id)) . "', '_blank')\"><i class='bx bx-printer'></i></button>";
             return [
                 $no,
                 esc($db->transcode),
@@ -63,7 +66,7 @@ class PurchaseOrder extends BaseController
                 esc($db->suppliername),
                 number_format($db->grandtotal ?? 2, 0, ',', '.'),
                 esc($db->description),
-                $btn_edit . ' ' . $btn_hapus
+                $btn_edit . ' ' . $btn_hapus . ' ' . $btn_print
                 
             ];
             
@@ -139,7 +142,9 @@ class PurchaseOrder extends BaseController
                 'supplierid' => $supplierId,
                 'supplydate' => $supplyDate,
                 'grandtotal' => 0.0,
-                'description' => $description
+                'description' => $description,
+                'createdby' => getSession('userid'),
+                'createddate' => date('Y-m-d H:i:s'),
             ];
 
             $insertId = $this->ModelPoHd->insert($data);
@@ -157,8 +162,11 @@ class PurchaseOrder extends BaseController
                     'sukses' => '1',
                     'pesan' => 'Data berhasil disimpan.',
                     'csrfToken' => csrf_hash(),
+                    'newId' => encrypting((string)$insertId)
                 ]);
+                
             }
+            
         } catch (Exception $e) {
             $this->db->transRollback();
             return $this->response->setJSON(['sukses' => '0', 'pesan' => $e->getMessage()]);
@@ -190,7 +198,9 @@ class PurchaseOrder extends BaseController
                 'supplierid' => $supplierId,
                 'supplydate' => $supplyDate,
                 'grandtotal' => $grandTotal,
-                'description' => $description
+                'description' => $description,
+                'updatedby' => getSession('userid'),
+                'updateddate' => date('Y-m-d H:i:s')
             ];
 
             $this->ModelPoHd->edit($data, $purchaseOrderId);
@@ -356,19 +366,21 @@ class PurchaseOrder extends BaseController
                 'uomid' => $uomId,
                 'qty' => $qty,
                 'price' => $price,
+                'createdby' => getSession('userid'),
+                'createddate' => date('Y-m-d H:i:s'),
             ];
 
             log_message('debug', 'Detail data: ' . json_encode($data));
 
             if ($detailId > 0) {
                 $data['updateddate'] = date('Y-m-d H:i:s');
-                $data['updatedby'] = session('userid');
+                $data['updatedby'] = getSession('userid');
                 $this->ModelPoHd->updateDetail($data, $detailId);
                 $message = 'Detail updated';
                 log_message('debug', 'Updated detail ID: ' . $detailId);
             } else {
                 $data['isactive'] = true;
-                $data['createdby'] = session('userid');
+                $data['createdby'] = getSession('userid');
                 $data['createddate'] = date('Y-m-d H:i:s');
                 $this->ModelPoHd->addDetail($data);
                 $message = 'Detail added';
@@ -426,8 +438,8 @@ class PurchaseOrder extends BaseController
                 'uomid' => $uomId,
                 'qty' => $qty,
                 'price' => $price,
-                'updateddate' => date('Y-m-d H:i:s'),
-                'updatedby' => session('userid')
+                'updatedby' => getSession('userid'),
+                'updateddate' => date('Y-m-d H:i:s')
             ];
 
             $this->ModelPoHd->updateDetail($data, $detailId);
@@ -496,5 +508,31 @@ class PurchaseOrder extends BaseController
             log_message('error', 'deleteDetail error: ' . $e->getMessage());
             return $this->response->setJSON(['sukses' => 0, 'pesan' => $e->getMessage()]);
         }
+    }
+
+    public function generatePdf($id) 
+    {
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+
+        $id = decrypting($id);
+        $header = $this->ModelPoHd->getOne($id);
+        if (!$header) {
+            throw new \Exception('Purchase Order not found');
+        }
+
+        $details = $this->ModelPoHd->getDetails($id);
+        //join mssupplier untuk nama supplier dan createdby
+        $supplier = $this->ModelPoHd->getSupplierById($header['supplierid']);
+        $header['suppliername'] = $supplier['suppliername'] ?? '';
+
+        $data = ['header' => $header, 'details' => $details];
+        $html = view('master/document/purchaseorder/v_pdf_template', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $dompdf->stream('Purchase_Order_' . $header['transcode'] . '.pdf', ['Attachment' => true]);
     }
 }

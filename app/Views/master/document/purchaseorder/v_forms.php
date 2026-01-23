@@ -57,15 +57,18 @@
         <textarea class="form-input fs-7" id="description" name="description" placeholder="Masukan Deskripsi" rows="3"><?= (($form_type == 'edit') ? esc($row['description']) : '') ?></textarea>
     </div>
     <input type="hidden" id="csrf_token_form" name="<?= csrf_token() ?>">
-    <div class="modal-footer">
-        <button type="button" class="btn btn-warning dflex align-center margin-r-3" onclick="return resetForm('form-purchaseorder')">
-            <i class="bx bx-revision margin-r-3"></i>
-            <span class="fw-normal fs-7">Reset</span>
-        </button>
-        <button type="button" id="btn-submit" class="btn btn-primary dflex align-center">
-            <i class="bx bx-check margin-r-2"></i>
-            <span class="fw-normal fs-7"><?= ($form_type == 'edit' ? 'Update' : 'Save') ?></span>
-        </button>
+    <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='<?= base_url('purchaseorder') ?>'">Kembali</button>
+        <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-warning dflex align-center margin-r-3" onclick="return resetForm('form-purchaseorder')">
+                <i class="bx bx-revision margin-r-3"></i>
+                <span class="fw-normal fs-7">Reset</span>
+            </button>
+            <button type="button" id="btn-submit" class="btn btn-primary dflex align-center">
+                <i class="bx bx-check margin-r-2"></i>
+                <span class="fw-normal fs-7"><?= ($form_type == 'edit') ? 'Update' : 'Save' ?></span>
+            </button>
+        </div>
     </div>
 </form>
 <?php if ($form_type == 'edit') : ?>
@@ -373,13 +376,19 @@
                         notif = 'error';
                     }
                     showNotif(notif, pesan);
-                    if (response.sukses == '1') {
-                        close_modal('modaldetail');
-                        window.location.href = '<?= base_url('purchaseorder') ?>'
-                        if (window.purchaseOrderTable) {
-                            window.purchaseOrderTable.ajax.reload(null, false);
-                        }
-                    }
+                     if (response.sukses == '1') {
+                         close_modal('modaldetail');
+                         if ($('#purchaseorderid').val()) {
+                             // edit
+                             window.location.href = '<?= base_url('purchaseorder') ?>';
+                         } else {
+                             // add
+                             window.location.href = '<?= base_url('purchaseorder/form/') ?>' + response.newId;
+                         }
+                         if (window.purchaseOrderTable) {
+                             window.purchaseOrderTable.ajax.reload(null, false);
+                         }
+                     }
                     $('#btn-submit').prop('disabled', false);
                 },
                 error: function(xhr, ajaxOptions, thrownError) {

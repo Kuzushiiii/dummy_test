@@ -141,4 +141,5 @@ $routes->group('purchaseorder', function ($routes) {
     $routes->post('updatedetail', 'PurchaseOrder::updateDetail');
     $routes->post('deleteDetail', 'PurchaseOrder::deleteDetail');
     $routes->get('editDetailModal/(:num)', 'PurchaseOrder::editDetailModal/$1');
+    $routes->get('pdf/(:any)', 'PurchaseOrder::generatePdf/$1');
 });
