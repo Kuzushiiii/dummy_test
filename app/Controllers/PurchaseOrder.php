@@ -510,10 +510,14 @@ class PurchaseOrder extends BaseController
         }
     }
 
-    public function generatePdf($id) 
+    public function generatePdf($id)
     {
         $options = new \Dompdf\Options();
         $options->set('isRemoteEnabled', true);
+        $options->set('chroot', FCPATH);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
 
         $id = decrypting($id);
         $header = $this->ModelPoHd->getOne($id);
@@ -522,17 +526,43 @@ class PurchaseOrder extends BaseController
         }
 
         $details = $this->ModelPoHd->getDetails($id);
-        //join mssupplier untuk nama supplier dan createdby
         $supplier = $this->ModelPoHd->getSupplierById($header['supplierid']);
         $header['suppliername'] = $supplier['suppliername'] ?? '';
 
-        $data = ['header' => $header, 'details' => $details];
+        // Hitung total dari detail
+        $subtotal = 0;
+        foreach ($details as $detail) {
+            $subtotal += $detail['qty'] * $detail['price'];
+        }
+
+        // Hitung PPN 11%
+        $ppn = $subtotal * 0.11;
+
+        // Grand Total = Subtotal + PPN
+        $grandTotal = $subtotal + $ppn;
+
+        // Logo
+        $logoPath = FCPATH . 'images/logo_hyperdata.jpg';
+        if (file_exists($logoPath)) {
+            $logoData = base64_encode(file_get_contents($logoPath));
+            $data['logo'] = 'data:image/jpg;base64,' . $logoData; // ubah ke jpg
+        } else {
+            $data['logo'] = '';
+            log_message('warning', 'Logo file not found: ' . $logoPath);
+        }
+
+        // Kirim data ke view
+        $data['header'] = $header;
+        $data['details'] = $details;
+        $data['subtotal'] = $subtotal;    // Total sebelum PPN
+        $data['ppn'] = $ppn;              // PPN 11%
+        $data['grandtotal'] = $grandTotal; // Total setelah PPN
+
         $html = view('master/document/purchaseorder/v_pdf_template', $data);
 
-        $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $dompdf->stream('Purchase_Order_' . $header['transcode'] . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Purchase_Order_' . $header['transcode'] . '.pdf', ['Attachment' => false]);
     }
 }

@@ -16,6 +16,10 @@
             border-collapse: collapse;
         }
 
+        h2 {
+            font-weight: bolder;    
+        }
+
         td,
         th {
             padding: 4px;
@@ -36,14 +40,20 @@
         }
 
         .title {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: bolder;
         }
 
         .section-title {
             font-weight: bold;
             border-bottom: 1px solid #000;
             padding-top: 8px;
+        }
+
+        .section-divider {
+            border: none;
+            border-bottom: 3px solid black;
+            margin: 10px 0 20px 0;
         }
     </style>
 </head>
@@ -52,17 +62,25 @@
     <!-- HEADER -->
     <table>
         <tr>
-            <img src="<?= FCPATH ?>images/logo_hyperdata.jpg" width="80">
-            <td width="50%" class="center title">PURCHASE ORDER</td>
+            <td width="20%">
+                <?php if (!empty($logo)): ?>
+                    <img src="<?= $logo ?>" width="90">
+                <?php else: ?>
+                    <div style="width: 80px; height: 80px; background-color: #f0f0f0; border: 1px solid #ccc;">
+                        No Logo
+                    </div>
+                <?php endif; ?>
+            <td width="50%" class="center title"> PURCHASE ORDER</td>
             <td width="30%">
-                <strong>PT CONTOH PERUSAHAAN</strong><br>
-                Jl. Industri No. 10<br>
-                Tangerang<br>
-                Telp: 021-123456
+                <strong>PT AUTOCHEM</strong><br>
+                Jl. Gatot Subroto Km 7 no 12 Jatake Jatiuwung Kota Tangerang <br> Banten 15136 Indonesia<br>
+                Telp: +62(21)5900131
             </td>
         </tr>
     </table>
-    <br>
+
+    <hr class="section-divider">
+
     <!-- INFO PURCHASE ORDER -->
     <table>
         <tr>
@@ -76,9 +94,13 @@
                         <td>Supplier</td>
                         <td>: <?= esc($header['suppliername']) ?></td>
                     </tr>
+                </table>
+            </td>
+            <td width="50%">
+                <table>
                     <tr>
-                        <td>Tanggal Transaksi</td>
-                        <td>: <?= date('d F Y', strtotime($header['transdate'])) ?></td>
+                        <td width="40%">Tanggal Purchase Order</td>
+                        <td width="60%">: <?= date('d F Y', strtotime($header['transdate'])) ?></td>
                     </tr>
                     <tr>
                         <td>Tanggal Supply</td>
@@ -86,18 +108,10 @@
                     </tr>
                 </table>
             </td>
-            <td width="50%">
-                <table>
-                    <tr>
-                        <td width="40%">Tanggal PO</td>
-                        <td width="60%">: <?= date('d F Y', strtotime($header['transdate'])) ?></td>
-                    </tr>
-                </table>
-            </td>
         </tr>
     </table>
     <br>
-    <!-- DETAIL ITEM -->
+    <h2>Data Penjualan</h2>
     <table class="border">
         <thead>
             <tr class="center">
@@ -119,25 +133,38 @@
                     <td><?= esc($d['productname']) ?></td>
                     <td class="center"><?= esc($d['uomnm']) ?></td>
                     <td class="right"><?= number_format($d['qty'], 0, ',', '.') ?></td>
-                    <td class="right">Rp <?= number_format($d['price'], 0, ',', '.') ?></td>
-                    <td class="right">Rp <?= number_format($subtotal, 0, ',', '.') ?></td>
+                    <td class="right">Rp <?= number_format($d['price'], 3, ',', '.') ?></td>
+                    <td class="right">Rp <?= number_format($subtotal, 3, ',', '.') ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
     <br>
     <!-- NOTES & SUMMARY -->
-    <table>
+    <table style="width:30%; float:right; border-collapse: collapse;">
         <tr>
             <td>
-                <table>
+                <table width="100%">
                     <tr>
-                        <td><strong>Total</strong></td>
-                        <td class="right"><strong>Rp <?= number_format($total, 0, ',', '.') ?></strong></td>
+                        <td><strong>Sub Total</strong></td>
+                        <td class="right">Rp <?= number_format($total, 3, ',', '.') ?></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Discount</strong></td>
+                        <td class="right">0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="border-top: 2px solid black;"></td>
+                    <tr>
+                        <td><strong>PPN (11%)</strong></td>
+                        <td class="right">Rp <?= number_format($ppn, 3, ',', '.') ?></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="border-top: 2px solid black;"></td>
                     </tr>
                     <tr>
                         <td><strong>Grand Total</strong></td>
-                        <td class="right"><strong>Rp <?= number_format($header['grandtotal'], 0, ',', '.') ?></strong></td>
+                        <td class="right"><strong>Rp <?= number_format($grandtotal, 3, ',', '.') ?></strong></td>
                     </tr>
                 </table>
             </td>
