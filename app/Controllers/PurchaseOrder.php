@@ -7,6 +7,7 @@ use App\Helpers\Datatables\Datatables;
 use App\Models\MPurchaseOrder;
 use Exception;
 use Dompdf\Dompdf;
+use Fpdf\Fpdf;
 
 
 class PurchaseOrder extends BaseController
@@ -64,12 +65,11 @@ class PurchaseOrder extends BaseController
                 esc($db->transdate),
                 esc($db->supplydate),
                 esc($db->suppliername),
-                number_format($db->grandtotal ?? 2, 0, ',', '.'),
+                number_format((float)($db->grandtotal ?? 0), 0, ',', '.'),
                 esc($db->description),
                 $btn_edit . ' ' . $btn_hapus . ' ' . $btn_print
-                
+
             ];
-            
         });
         $table->toJson();
     }
@@ -89,13 +89,15 @@ class PurchaseOrder extends BaseController
             }
         }
 
-        $suppliers = array_map(function($s) {
+        $suppliers = array_map(function ($s) {
             return ['id' => $s['id'], 'suppliername' => $s['text']];
         }, $this->ModelPoHd->getSuppliers('', 0));
 
         $details = [];
         if ($id != '') {
-            $details = $this->ModelPoHd->getDetails($id);
+            $details = $this->ModelPoHd->getDetail('dt.headerid', $id)
+                ->get()
+                ->getResultArray();
             $this->ModelPoHd->hitungGrandTotal($id);
             $row = $this->ModelPoHd->getOne($id) ?? [];
         }
@@ -156,7 +158,7 @@ class PurchaseOrder extends BaseController
                     'pesan' => 'Gagal menyimpan data transaksi'
                 ]);
             } else {
-                
+
                 $this->db->transCommit();
                 return $this->response->setJSON([
                     'sukses' => '1',
@@ -164,9 +166,7 @@ class PurchaseOrder extends BaseController
                     'csrfToken' => csrf_hash(),
                     'newId' => encrypting((string)$insertId)
                 ]);
-                
             }
-            
         } catch (Exception $e) {
             $this->db->transRollback();
             return $this->response->setJSON(['sukses' => '0', 'pesan' => $e->getMessage()]);
@@ -229,7 +229,7 @@ class PurchaseOrder extends BaseController
     {
         $id = $this->request->getPost('id');
         $res = array();
-        $this->ModelPoHd->transBegin();
+        $this->db->transBegin();
         try {
             if (empty($id)) throw new Exception(("ID Purchase Order dibutuhkan!"));
 
@@ -240,14 +240,14 @@ class PurchaseOrder extends BaseController
 
             $this->ModelPoHd->destroy('id', $id);
 
-            if ($this->ModelPoHd->transStatus() === false) {
-                $this->ModelPoHd->transRollback();
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
                 return $this->response->setJSON([
                     'sukses' => '0',
                     'pesan' => 'Gagal menghapus data transaksi'
                 ]);
             } else {
-                $this->ModelPoHd->transCommit();
+                $this->db->transCommit();
                 return $this->response->setJSON([
                     'sukses' => '1',
                     'pesan' => 'Data berhasil dihapus.',
@@ -255,7 +255,7 @@ class PurchaseOrder extends BaseController
                 ]);
             }
         } catch (Exception $e) {
-            $this->ModelPoHd->transRollback();
+            $this->db->transRollback();
             return $this->response->setJSON([
                 'sukses' => '0',
                 'pesan' => $e->getMessage(),
@@ -315,9 +315,11 @@ class PurchaseOrder extends BaseController
         ]);
     }
 
-    public function editDetailModal($detailId)
+    public function editDetailModal($Id)
     {
-        $detail = $this->ModelPoHd->getDetail($detailId);
+        $detail = $this->ModelPoHd->getDetail('dt.id', $Id)
+            ->get()
+            ->getRowArray();
         if (!$detail) {
             return $this->response->setStatusCode(404)->setBody('Detail not found');
         }
@@ -454,12 +456,12 @@ class PurchaseOrder extends BaseController
             } else {
                 $this->db->transCommit();
                 log_message('debug', 'updateDetail success for id: ' . $detailId);
-                 return $this->response->setJSON([
-                     'sukses' => 1,
-                     'pesan' => 'Detail updated',
-                     'csrfToken' => csrf_hash(),
-                     'grandtotal' => $this->ModelPoHd->getGrandTotal($headerId)
-                 ]);
+                return $this->response->setJSON([
+                    'sukses' => 1,
+                    'pesan' => 'Detail updated',
+                    'csrfToken' => csrf_hash(),
+                    'grandtotal' => $this->ModelPoHd->getGrandTotal($headerId)
+                ]);
             }
         } catch (\Throwable $e) {
             $this->db->transRollback();
@@ -510,59 +512,156 @@ class PurchaseOrder extends BaseController
         }
     }
 
-    public function generatePdf($id)
+    public function printPdf($id)
     {
-        $options = new \Dompdf\Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('chroot', FCPATH);
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isPhpEnabled', true);
-        $dompdf = new \Dompdf\Dompdf($options);
-
         $id = decrypting($id);
-        $header = $this->ModelPoHd->getOne($id);
-        if (!$header) {
-            throw new \Exception('Purchase Order not found');
+
+        $header  = $this->ModelPoHd->getSupplier($id);
+        $details = $this->ModelPoHd
+            ->getDetail('dt.headerid', $id)
+            ->get()
+            ->getResultArray();
+
+        $logo = FCPATH . 'images/logo_hyperdata.jpg';
+
+        $pdf = new FPDF('P', 'mm', 'A4');
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', '', 9);
+
+        /* ================= HEADER TABLE ================= */
+
+        $headerHeight = 24;
+        
+        $xStart = $pdf->GetX();
+        $yStart = $pdf->GetY();
+
+        $pdf->Cell(30, $headerHeight, '', 1, 0, 'C');
+
+        if (file_exists($logo)) {
+            $pdf->Image($logo, $xStart + 6, $yStart + 2, 18);
         }
 
-        $details = $this->ModelPoHd->getDetails($id);
-        $supplier = $this->ModelPoHd->getSupplierById($header['supplierid']);
-        $header['suppliername'] = $supplier['suppliername'] ?? '';
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell(50, $headerHeight, 'PURCHASE ORDER', 1, 0, 'C');
 
-        // Hitung total dari detail
-        $subtotal = 0;
-        foreach ($details as $detail) {
-            $subtotal += $detail['qty'] * $detail['price'];
+        $xRight = $pdf->GetX();
+        $yRight = $pdf->GetY();
+
+        $labelW = 25;
+        $valueW = 43;
+        $ttdW   = 42;
+        $rowH   = 6;
+        $ttdH   = $rowH * 4;
+
+        $pdf->SetFont('Arial', '', 8);
+
+        $pdf->SetXY($xRight + $labelW + $valueW, $yRight);
+        $pdf->Cell($ttdW, $ttdH, '', 1, 0);
+
+        $pdf->SetXY(
+            $xRight + $labelW + $valueW,
+            $yRight + 1
+        );
+        
+        $pdf->MultiCell($ttdW, 1.33,"Disetujui Oleh :\n\nManager", 0,'C');
+
+        $pdf->Ln(1);
+        $pdf->SetX($xRight + $labelW + $valueW);
+        $pdf->Cell($ttdW, 0, '', 'T', 2, '');
+
+        $pdf->Ln(12);
+        $pdf->SetX($xRight + $labelW + $valueW);
+        $pdf->Cell($ttdW, 0, '', 'T', 2, '');
+
+        $pdf->Ln(2);
+        $pdf->SetX($xRight + $labelW + $valueW + 1);
+        $pdf->Cell($ttdW - 2, 2, 'M Tiansyah', 0, 0, 'C');
+
+        /* ===== BARIS 1 ===== */
+        $pdf->SetXY($xRight, $yRight);
+        $pdf->Cell($labelW, $rowH, 'Transaction Code', 1, 0);
+        $pdf->Cell($valueW, $rowH, $header['transcode'], 1, 1);
+
+        /* ===== BARIS 2 ===== */
+        $pdf->SetX($xRight);
+        $pdf->Cell($labelW, $rowH, 'Supplier', 1, 0);
+        $pdf->Cell($valueW, $rowH, $header['suppliername'], 1, 1);
+
+        /* ===== BARIS 3 ===== */
+        $pdf->SetX($xRight);
+        $pdf->Cell($labelW, $rowH, 'Tanggal PO', 1, 0);
+        $pdf->Cell($valueW,$rowH,date('d F Y', strtotime($header['transdate'])),1,1);
+
+        /* ===== BARIS 4 ===== */
+        $pdf->SetX($xRight);
+        $pdf->Cell($labelW, $rowH, 'Tanggal Supply', 1, 0);
+        $pdf->Cell($valueW,$rowH,date('d F Y', strtotime($header['supplydate'])),1,1);
+        
+        $pdf->Ln(5);
+
+        /* ================= TABLE HEADER ================= */
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(190, 8, 'Data Penjualan', 0, 1);
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(10, 8, 'No', 1, 0, 'C');
+        $pdf->Cell(65, 8, 'Product Name', 1, 0, 'C');
+        $pdf->Cell(20, 8, 'UOM', 1, 0, 'C');
+        $pdf->Cell(20, 8, 'Qty', 1, 0, 'C');
+        $pdf->Cell(35, 8, 'Price', 1, 0, 'C');
+        $pdf->Cell(40, 8, 'Total', 1, 1, 'C');
+
+        /* ================= TABLE BODY ================= */
+
+        $pdf->SetFont('Arial', '', 10);
+        $no = 1;
+        $subtotalAll = 0;
+
+        foreach ($details as $d) {
+            $subtotal = $d['qty'] * $d['price'];
+            $subtotalAll += $subtotal;
+
+            $pdf->Cell(10, 8, $no++, 1, 0, 'C');
+            $pdf->Cell(65, 8, $d['productname'], 1);
+            $pdf->Cell(20, 8, $d['uomnm'], 1, 0, 'C');
+            $pdf->Cell(20, 8, number_format($d['qty'], 0, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(35, 8, 'Rp ' . number_format($d['price'], 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(40, 8, 'Rp ' . number_format($subtotal, 2, ',', '.'), 1, 1, 'R');
         }
 
-        // Hitung PPN 11%
-        $ppn = $subtotal * 0.11;
+        /* ================= SUMMARY ================= */
+        $ppn = $subtotalAll * 0.11;
+        $grandTotal = $subtotalAll + $ppn;
 
-        // Grand Total = Subtotal + PPN
-        $grandTotal = $subtotal + $ppn;
+        $pdf->Ln(4);
+        $pdf->SetX(131);
 
-        // Logo
-        $logoPath = FCPATH . 'images/logo_hyperdata.jpg';
-        if (file_exists($logoPath)) {
-            $logoData = base64_encode(file_get_contents($logoPath));
-            $data['logo'] = 'data:image/jpg;base64,' . $logoData; // ubah ke jpg
-        } else {
-            $data['logo'] = '';
-            log_message('warning', 'Logo file not found: ' . $logoPath);
-        }
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(35, 8, 'Sub Total', 0, 0);
+        $pdf->Cell(35, 8, 'Rp ' . number_format($subtotalAll, 3, ',', '.'), 0, 1, 'R');
 
-        // Kirim data ke view
-        $data['header'] = $header;
-        $data['details'] = $details;
-        $data['subtotal'] = $subtotal;    // Total sebelum PPN
-        $data['ppn'] = $ppn;              // PPN 11%
-        $data['grandtotal'] = $grandTotal; // Total setelah PPN
+        $pdf->SetX(131);
+        $pdf->Cell(35, 8, 'Discount', 0, 0);
+        $pdf->Cell(35, 8, '0', 0, 1, 'R');
 
-        $html = view('master/document/purchaseorder/v_pdf_template', $data);
+        $pdf->SetX(131);
+        $pdf->Line(131, $pdf->GetY(), 200, $pdf->GetY());
+        $pdf->Ln(2);
 
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $dompdf->stream('Purchase_Order_' . $header['transcode'] . '.pdf', ['Attachment' => false]);
+        $pdf->SetX(131);
+        $pdf->Cell(35, 8, 'PPN (11%)', 0, 0);
+        $pdf->Cell(35, 8, 'Rp ' . number_format($ppn, 3, ',', '.'), 0, 1, 'R');
+
+        $pdf->SetX(131);
+        $pdf->Line(131, $pdf->GetY(), 200, $pdf->GetY());
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->SetX(131);
+        $pdf->Cell(35, 8, 'Grand Total', 0, 0);
+        $pdf->Cell(35, 8, 'Rp ' . number_format($grandTotal, 3, ',', '.'), 0, 1, 'R');
+
+        $pdf->Output('I', 'Purchase_Order.pdf');
+        exit;
     }
 }

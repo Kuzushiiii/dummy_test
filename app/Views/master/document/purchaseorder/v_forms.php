@@ -200,8 +200,8 @@
         });
 
         generateSelect2('#supplierid', '#form-purchaseorder', '<?= base_url('purchaseorder/getsuppliers') ?>', 'Pilih Supplier');
-        generateSelect2('#productid', 'body', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product'); // Changed
-        generateSelect2('#uomid', 'body', '<?= base_url('purchaseorder/getuoms') ?>', 'Pilih UOM'); // Changed
+        generateSelect2('#productid', 'body', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product'); 
+        generateSelect2('#uomid', 'body', '<?= base_url('purchaseorder/getuoms') ?>', 'Pilih UOM');
 
         function ensureSelectOption($select, id, text) {
             if ($select.find("option[value='" + id + "']").length === 0) {

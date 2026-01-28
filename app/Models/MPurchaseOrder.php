@@ -33,16 +33,17 @@ class MPurchaseOrder extends Model
         return [
             null,
             "poh.transcode",
-            "poh.transdate",
-            "poh.supplydate",
+            "poh.transdate::text",
+            "poh.supplydate::text",
             "mssupplier.suppliername",
-            "poh.grandtotal",
+            "poh.grandtotal::text",
             "poh.description",
             null,
             null,
         ];
     }
 
+    //menyusun query utama untuk list PO 
     public function datatable()
     {
         $builder = $this->db->table($this->table . ' as poh');
@@ -57,51 +58,42 @@ class MPurchaseOrder extends Model
         return $builder;
     }
 
+    //mengambil 1 data header
     public function getOne($id)
     {
         return  $this->where("id", $id)->first();
     }
 
+    //insert data header    
     public function store($data)
     {
         return $this->db->table($this->table)->insert($data);    
     }
 
+    //update data header
     public function edit($data, $id)
     {
         return $this->db->table($this->table)->update($data, ['id' => $id]);
     }
 
+    //hapus data header
     public function destroy($column, $value)
     {
         return $this->db->table($this->table)->delete([$column => $value]);
     }
 
     //kumpulan fungsi untuk bagian purchaseorder detail
-    public function getDetails($headerId)
+    public function getDetail($column, $value)
     {
         return $this->db->table('trpurchaseorderdt as dt')
             ->select('dt.*, p.productname, u.uomnm')
             ->join('msproduct p', 'p.id = dt.productid', 'left')
             ->join('msuom u', 'u.id = dt.uomid', 'left')
-            ->where('dt.headerid', $headerId)
-            ->where('dt.isactive', true)
-            ->get()
-            ->getResultArray();
+            ->where($column, $value)
+            ->where('dt.isactive', true);
     }
 
-    public function getDetail($detailId)
-    {
-        return $this->db->table('trpurchaseorderdt as dt')
-            ->select('dt.*, p.productname, u.uomnm')
-            ->join('msproduct p', 'p.id = dt.productid', 'left')
-            ->join('msuom u', 'u.id = dt.uomid', 'left')
-            ->where('dt.id', $detailId)
-            ->where('dt.isactive', true)
-            ->get()
-            ->getRowArray();
-    }
-
+    // untuk cari headerid dari detail &  untuk redirect balik ke header
     public function getDetailHeaderId($detailId)
     {
         return $this->db->table('trpurchaseorderdt')
@@ -111,36 +103,43 @@ class MPurchaseOrder extends Model
             ->getRowArray()['headerid'] ?? null;
     }
 
+    //untuk cek apakah data transcode sudah ada
     public function isTransCodeExists($transCode)
     {
         return $this->where('transcode', $transCode)->first() !== null;
     }
 
+    //server side datatable untuk table detail
     public function getDetailsAjaxData($headerId, $search = '', $start = 0, $length = 10)
     {
-        $builder = $this->db->table('trpurchaseorderdt as dt')
+        $baseBuilder = $this->db->table('trpurchaseorderdt as dt')
             ->select('dt.*, p.productname, u.uomnm')
             ->join('msproduct p', 'p.id = dt.productid', 'left')
             ->join('msuom u', 'u.id = dt.uomid', 'left')
             ->where('dt.headerid', $headerId)
             ->where('dt.isactive', true);
 
-        $recordsTotal = $builder->countAllResults(false);
+        $recordsTotal = (clone $baseBuilder)->countAllResults();
 
-        $filteredBuilder = clone $builder;
+        $filteredBuilder = clone $baseBuilder;
 
         if (!empty($search)) {
-            $s = $this->db->escapeLikeString($search);
+            $s = strtolower($search);
+
+            // case-insensitive search dengan LOWER(column) dan LIKE
             $filteredBuilder->groupStart()
-                ->like("LOWER(p.productname)", $s, 'both', false)
-                ->orLike("LOWER(u.uomnm)", $s, 'both', false)
+                ->like('LOWER(p.productname)', $s, 'both', false, true)
+                ->orLike('LOWER(u.uomnm)', $s, 'both', false, true)
                 ->groupEnd();
         }
 
-        $recordsFiltered = $filteredBuilder->countAllResults(false);
+        // total setelah filter search
+        $recordsFiltered = (clone $filteredBuilder)->countAllResults();
 
-        $filteredBuilder->limit($length, $start);
-        $data = $filteredBuilder->get()->getResultArray();
+        $data = $filteredBuilder
+            ->limit($length, $start)
+            ->get()
+            ->getResultArray();
 
         $mappedData = array_map(function ($row) {
             return [
@@ -161,6 +160,7 @@ class MPurchaseOrder extends Model
         ];
     }
 
+    //insert data detail
     public function addDetail($data)
     {
         return $this->db->table('trpurchaseorderdt')->insert($data);
@@ -171,26 +171,13 @@ class MPurchaseOrder extends Model
         return $this->db->table('trpurchaseorderdt')->update($data, ['id' => $id]);
     }
 
+    //menghapus data detaul (soft delete)
     public function deleteDetail($id) 
     {
         return $this->db->table('trpurchaseorderdt')->update(['isactive' => false], ['id' => $id]);
     }
 
-    public function hitungGrandTotal($id)
-    {
-        $total = $this->db->table('trpurchaseorderdt')
-            ->selectSum('(qty * price)', 'grandtotal')
-            ->where('headerid', $id)
-            ->where('isactive', true)
-            ->get()
-            ->getRowArray()['grandtotal'] ?? 0;
-
-        $this->db->table('trpurchaseorderhd')
-            ->where('id', $id)
-            ->update(['grandtotal' => $total]);
-        return $total;
-    }
-
+    //ambil data total 
     public function getGrandTotal($id)
     {
         return $this->db->table('trpurchaseorderdt')
@@ -201,6 +188,18 @@ class MPurchaseOrder extends Model
             ->getRowArray()['grandtotal'] ?? 0;
     }
 
+    //hitung ulang total dari detail
+    public function hitungGrandTotal($id)
+    {
+        $total = $this->getGrandTotal($id);
+
+        $this->db->table('trpurchaseorderhd')
+            ->update(['grandtotal' => $total], ['id' => $id]);
+
+        return $total;
+    }
+
+    //ambil data supplier berdasarkan id
     public function getSupplierById($id)
     {
         return $this->db->table('mssupplier')
@@ -209,6 +208,7 @@ class MPurchaseOrder extends Model
             ->getRowArray();
     }
 
+    //ambil data suppliers untuk select2
     public function getSuppliers($search = '', $limit = 10)
     {
         $builder = $this->db->table('mssupplier')
@@ -223,6 +223,7 @@ class MPurchaseOrder extends Model
         return $query->get()->getResultArray();
     }
 
+    //ambil data products untuk select2
     public function getProducts($search = '', $limit = 10)
     {
         $builder = $this->db->table('msproduct')
@@ -237,6 +238,7 @@ class MPurchaseOrder extends Model
         return $query->get()->getResultArray();
     }
 
+    //ambil data uom untuk select2
     public function getUoms($search = '', $limit = 10)
     {
         $builder = $this->db->table('msuom')
@@ -250,6 +252,17 @@ class MPurchaseOrder extends Model
             $query->limit($limit);
         }
         return $query->get()->getResultArray();
+    }
+
+    //untuk ambil data header dan suppliername (untuk export to pdf)
+    public function getSupplier($id)
+    {
+        return $this->db->table('trpurchaseorderhd as poh')
+            ->select('poh.*, mssupplier.suppliername')
+            ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
+            ->where('poh.id', $id)
+            ->get()
+            ->getRowArray();
     }
 
 }
