@@ -142,4 +142,5 @@ $routes->group('purchaseorder', function ($routes) {
     $routes->post('deleteDetail', 'PurchaseOrder::deleteDetail', $this->noauth);
     $routes->get('editDetailModal/(:num)', 'PurchaseOrder::editDetailModal/$1', $this->noauth);
     $routes->get('pdf/(:any)', 'PurchaseOrder::printPdf/$1', $this->noauth);
+    $routes->get('pdf/(:any)/(:num)', 'PurchaseOrder::printPdf/$1/$2', $this->noauth);
 });

@@ -58,7 +58,15 @@ class PurchaseOrder extends BaseController
         $table->updateRow(function ($db, $no) {
             $btn_edit = "<button type='button' class='btn btn-sm btn-warning me-1' onclick=\"window.location.href='" . getURL('purchaseorder/form/' . encrypting($db->id)) . "'\"><i class='bx bx-edit-alt'></i></button>";
             $btn_hapus = '<button type="button" class="btn btn-sm btn-danger" onclick="modalDelete(\'Delete Purchase Order - ' . addslashes($db->transcode) . '\', {\'link\':\'' . getURL('purchaseorder/deleteData') . '\', \'id\':\'' . encrypting($db->id) . '\', \'pagetype\':\'table\'})"><i class=\'bx bx-trash\'></i></button>';
-            $btn_print = "<button type='button' class='btn btn-sm btn-info' onclick=\"window.open('" . getURL('purchaseorder/pdf/' . encrypting($db->id)) . "', '_blank')\"><i class='bx bx-printer'></i></button>";
+
+            // tanpa logo (default)
+            $btn_print_no_logo = "<button type='button' class='btn btn-sm btn-info me-1' title='Print tanpa logo' onclick=\"window.open('" . getURL('purchaseorder/pdf/' . encrypting($db->id)) . "', '_blank')\"><i class='bx bx-printer'></i></button>";
+
+            // dengan logo (withLogo = 1)
+            $btn_print_with_logo = "<button type='button' class='btn btn-sm btn-secondary' title='Print dengan logo' onclick=\"window.open('" . getURL('purchaseorder/pdf/' . encrypting($db->id) . '/1') . "', '_blank')\"><i class='bx bx-image-alt'></i></button>";
+
+            $btn_print = $btn_print_no_logo . $btn_print_with_logo;
+
             return [
                 $no,
                 esc($db->transcode),
@@ -67,7 +75,7 @@ class PurchaseOrder extends BaseController
                 esc($db->suppliername),
                 number_format((float)($db->grandtotal ?? 0), 0, ',', '.'),
                 esc($db->description),
-                $btn_edit . ' ' . $btn_hapus . ' ' . $btn_print
+                $btn_edit . ' ' . $btn_hapus . ' ' . $btn_print_no_logo . ' ' . $btn_print_with_logo
 
             ];
         });
@@ -149,7 +157,7 @@ class PurchaseOrder extends BaseController
                 'createddate' => date('Y-m-d H:i:s'),
             ];
 
-            $insertId = $this->ModelPoHd->insert($data);
+            $insertId = $this->ModelPoHd->store($data);
 
             if ($this->db->transStatus() === false) {
                 $this->db->transRollback();
@@ -512,17 +520,18 @@ class PurchaseOrder extends BaseController
         }
     }
 
-    public function printPdf($id)
+    public function printPdf($id, $withLogo = false)
     {
         $id = decrypting($id);
 
-        $header  = $this->ModelPoHd->getSupplier($id);
+        $header  = $this->ModelPoHd->getHeaderWithSupplier($id);
         $details = $this->ModelPoHd
             ->getDetail('dt.headerid', $id)
             ->get()
             ->getResultArray();
 
         $logo = FCPATH . 'images/logo_hyperdata.jpg';
+        $logottd = FCPATH . 'images/tanda_tangan.jpg';
 
         $pdf = new FPDF('P', 'mm', 'A4');
         $pdf->AddPage();
@@ -537,7 +546,7 @@ class PurchaseOrder extends BaseController
 
         $pdf->Cell(30, $headerHeight, '', 1, 0, 'C');
 
-        if (file_exists($logo)) {
+        if ($withLogo && file_exists($logo)) {
             $pdf->Image($logo, $xStart + 6, $yStart + 2, 18);
         }
 
@@ -551,53 +560,43 @@ class PurchaseOrder extends BaseController
         $valueW = 43;
         $ttdW   = 42;
         $rowH   = 6;
-        $ttdH   = $rowH * 4;
 
         $pdf->SetFont('Arial', '', 8);
 
-        $pdf->SetXY($xRight + $labelW + $valueW, $yRight);
-        $pdf->Cell($ttdW, $ttdH, '', 1, 0);
-
-        $pdf->SetXY(
-            $xRight + $labelW + $valueW,
-            $yRight + 1
-        );
-        
-        $pdf->MultiCell($ttdW, 1.33,"Disetujui Oleh :\n\nManager", 0,'C');
-
-        $pdf->Ln(1);
-        $pdf->SetX($xRight + $labelW + $valueW);
-        $pdf->Cell($ttdW, 0, '', 'T', 2, '');
-
-        $pdf->Ln(12);
-        $pdf->SetX($xRight + $labelW + $valueW);
-        $pdf->Cell($ttdW, 0, '', 'T', 2, '');
-
-        $pdf->Ln(2);
-        $pdf->SetX($xRight + $labelW + $valueW + 1);
-        $pdf->Cell($ttdW - 2, 2, 'M Tiansyah', 0, 0, 'C');
-
-        /* ===== BARIS 1 ===== */
+        /* ===== BARIS 1 (top) ===== */
         $pdf->SetXY($xRight, $yRight);
         $pdf->Cell($labelW, $rowH, 'Transaction Code', 1, 0);
-        $pdf->Cell($valueW, $rowH, $header['transcode'], 1, 1);
+        $pdf->Cell($valueW, $rowH, $header['transcode'], 1, 0);
+        $pdf->Cell($ttdW, $rowH, '', 'LTRB', 0);
+
+        $pdf->SetXY($xRight + $labelW + $valueW + 1, $yRight + 1);
+        $pdf->MultiCell($ttdW - 2, 2.2, "Disetujui Oleh :\nManager", 0, 'C');
 
         /* ===== BARIS 2 ===== */
-        $pdf->SetX($xRight);
+        $pdf->SetXY($xRight, $yRight + $rowH);
         $pdf->Cell($labelW, $rowH, 'Supplier', 1, 0);
-        $pdf->Cell($valueW, $rowH, $header['suppliername'], 1, 1);
+        $pdf->Cell($valueW, $rowH, $header['suppliername'], 1, 0);
+        $pdf->Cell($ttdW, $rowH, '', 'LR', 0);
 
         /* ===== BARIS 3 ===== */
-        $pdf->SetX($xRight);
+        $pdf->SetXY($xRight, $yRight + ($rowH * 2));
         $pdf->Cell($labelW, $rowH, 'Tanggal PO', 1, 0);
-        $pdf->Cell($valueW,$rowH,date('d F Y', strtotime($header['transdate'])),1,1);
+        $pdf->Cell($valueW, $rowH, date('d F Y', strtotime($header['transdate'])), 1, 0);
+        $pdf->Cell($ttdW, $rowH, '', 'LR', 0);
 
-        /* ===== BARIS 4 ===== */
-        $pdf->SetX($xRight);
+        /* ===== BARIS 4 (bottom) ===== */
+        $pdf->SetXY($xRight, $yRight + ($rowH * 3));
         $pdf->Cell($labelW, $rowH, 'Tanggal Supply', 1, 0);
-        $pdf->Cell($valueW,$rowH,date('d F Y', strtotime($header['supplydate'])),1,1);
+        $pdf->Cell($valueW, $rowH, date('d F Y', strtotime($header['supplydate'])), 1, 0);
+        $pdf->Cell($ttdW, $rowH, 'M Tiansyah', 1, 0, 'C');
+
+        if ($withLogo && file_exists($logottd)) {
+            $xTtd = $xRight + $labelW + $valueW + 13;
+            $yTtd = $yRight + ($rowH) + 1;
+            $pdf->Image($logottd, $xTtd, $yTtd, $ttdW - 25);
+        }
         
-        $pdf->Ln(5);
+        $pdf->Ln(10);
 
         /* ================= TABLE HEADER ================= */
         $pdf->SetFont('Arial', 'B', 12);

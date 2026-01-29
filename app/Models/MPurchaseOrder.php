@@ -6,7 +6,6 @@ use CodeIgniter\Model;
 
 class MPurchaseOrder extends Model
 {
-    protected $db;
     protected $table = 'trpurchaseorderhd';
     protected $primaryKey = 'id';
     protected $allowedFields = [
@@ -26,7 +25,6 @@ class MPurchaseOrder extends Model
     {
         parent::__construct();
     }
-
 
     public function searchable()
     {
@@ -61,7 +59,7 @@ class MPurchaseOrder extends Model
     //mengambil 1 data header
     public function getOne($id)
     {
-        return  $this->where("id", $id)->first();
+        return $this->db->table($this->table)->where('id', $id)->get()->getRowArray();        
     }
 
     //insert data header    
@@ -82,15 +80,22 @@ class MPurchaseOrder extends Model
         return $this->db->table($this->table)->delete([$column => $value]);
     }
 
-    //kumpulan fungsi untuk bagian purchaseorder detail
-    public function getDetail($column, $value)
+    /*============== kumpulan method untuk bagian purchaseorder detail ===============*/
+    //base query untuk purchaseorder detail
+    //(private fucntion hanya bisa di pakai di model itu sendiri)
+    private function baseDetailQuery()
     {
         return $this->db->table('trpurchaseorderdt as dt')
             ->select('dt.*, p.productname, u.uomnm')
             ->join('msproduct p', 'p.id = dt.productid', 'left')
             ->join('msuom u', 'u.id = dt.uomid', 'left')
-            ->where($column, $value)
             ->where('dt.isactive', true);
+    }
+
+    //mengambil data detail 
+    public function getDetail($column, $value)
+    {
+        return $this->baseDetailQuery()->where($column, $value);
     }
 
     // untuk cari headerid dari detail &  untuk redirect balik ke header
@@ -106,18 +111,13 @@ class MPurchaseOrder extends Model
     //untuk cek apakah data transcode sudah ada
     public function isTransCodeExists($transCode)
     {
-        return $this->where('transcode', $transCode)->first() !== null;
+        return $this->db->table($this->table)->where('transcode', $transCode)->get()->getRowArray() !== null;
     }
 
     //server side datatable untuk table detail
     public function getDetailsAjaxData($headerId, $search = '', $start = 0, $length = 10)
     {
-        $baseBuilder = $this->db->table('trpurchaseorderdt as dt')
-            ->select('dt.*, p.productname, u.uomnm')
-            ->join('msproduct p', 'p.id = dt.productid', 'left')
-            ->join('msuom u', 'u.id = dt.uomid', 'left')
-            ->where('dt.headerid', $headerId)
-            ->where('dt.isactive', true);
+        $baseBuilder = $this->baseDetailQuery()->where('dt.headerid', $headerId);
 
         $recordsTotal = (clone $baseBuilder)->countAllResults();
 
@@ -166,6 +166,7 @@ class MPurchaseOrder extends Model
         return $this->db->table('trpurchaseorderdt')->insert($data);
     }
 
+    //
     public function updateDetail($data, $id)
     {
         return $this->db->table('trpurchaseorderdt')->update($data, ['id' => $id]);
@@ -255,7 +256,7 @@ class MPurchaseOrder extends Model
     }
 
     //untuk ambil data header dan suppliername (untuk export to pdf)
-    public function getSupplier($id)
+    public function getHeaderWithSupplier($id)
     {
         return $this->db->table('trpurchaseorderhd as poh')
             ->select('poh.*, mssupplier.suppliername')
