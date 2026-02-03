@@ -139,8 +139,11 @@ $routes->group('purchaseorder', function ($routes) {
     $routes->post('saveDetail', 'PurchaseOrder::saveDetail', $this->noauth);
     $routes->get('edit/(:alphanum)', 'PurchaseOrder::forms/$1', $this->noauth);
     $routes->post('updatedetail', 'PurchaseOrder::updateDetail', $this->noauth);
-    $routes->post('deleteDetail', 'PurchaseOrder::deleteDetail', $this->noauth);
+    $routes->post('deletedetail', 'PurchaseOrder::deleteDetail', $this->noauth);
     $routes->get('editDetailModal/(:num)', 'PurchaseOrder::editDetailModal/$1', $this->noauth);
     $routes->get('pdf/(:any)', 'PurchaseOrder::printPdf/$1', $this->noauth);
     $routes->get('pdf/(:any)/(:num)', 'PurchaseOrder::printPdf/$1/$2', $this->noauth);
+    $routes->post('startExport', 'PurchaseOrder::startExport', $this->noauth);
+    $routes->post('processExportChunk', 'PurchaseOrder::processExportChunk', $this->noauth);
+    $routes->get('downloadExport/(:any)', 'PurchaseOrder::downloadExport/$1', $this->noauth);
 });

@@ -65,7 +65,8 @@ class MPurchaseOrder extends Model
     //insert data header    
     public function store($data)
     {
-        return $this->db->table($this->table)->insert($data);    
+        $this->db->table($this->table)->insert($data); 
+        return $this->db->insertID();   
     }
 
     //update data header
@@ -145,11 +146,11 @@ class MPurchaseOrder extends Model
             return [
                 esc($row['productname']),
                 esc($row['uomnm']),
-                esc(rtrim(rtrim(number_format($row['qty'], 0, ',', '.'), '0'), '.')),
-                number_format($row['price'], 0, ',', '.'),
-                number_format($row['qty'] * $row['price'], 0, ',', '.'),
+                esc(number_format($row['qty'], 3, ',', '.')),
+                number_format($row['price'], 3, ',', '.'),
+                number_format($row['qty'] * $row['price'], 3, ',', '.'),
                 '<button class="btn btn-sm btn-warning" onclick="editDetail(' . $row['id'] . ', \'' . $row['productid'] . '\', \'' . $row['uomid'] . '\', \'' . $row['qty'] . '\', \'' . $row['price'] . '\', \'' . addslashes($row['productname']) . '\', \'' . addslashes($row['uomnm']) . '\')"><i class="bx bx-edit-alt"></i></button> ' .
-                '<button class="btn btn-sm btn-danger" onclick="modalDelete(\'Hapus Detail Purchase Order - ' . addslashes($row['productname']) . '\', {\'link\':\'' . getURL('purchaseorder/deleteDetail') . '\', \'id\':\'' . $row['id'] . '\', \'pagetype\':\'table\', \'table-id\':\'detailsTable\'})"><i class="bx bx-trash"></i></button>'
+                '<button class="btn btn-sm btn-danger" onclick="modalDelete(\'Hapus Detail Purchase Order - ' . addslashes($row['productname']) . '\', {\'link\':\'' . getURL('purchaseorder/deletedetail') . '\', \'id\':\'' . $row['id'] . '\', \'pagetype\':\'table\', \'table-id\':\'detailsTable\'})"><i class="bx bx-trash"></i></button>'
             ];
         }, $data);
 
@@ -266,6 +267,30 @@ class MPurchaseOrder extends Model
             ->getRowArray();
     }
 
+    public function getExportChunk($offset, $limit): array
+    {
+        return $this->db->table('trpurchaseorderhd as poh')
+            ->select('
+                poh.id,
+                poh.transcode,
+                poh.transdate,
+                poh.supplydate,
+                poh.description,
+                mssupplier.suppliername,
+                COALESCE(SUM(CASE WHEN dt.isactive = true THEN dt.qty * dt.price ELSE 0 END), 0) as grandtotal
+            ')
+            ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
+            ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left')
+            ->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername')
+            ->orderBy('poh.transcode', 'ASC')
+            ->limit($limit, $offset)
+            ->get()
+            ->getResultArray();
+    }
+
+    public function countAllExport(): int
+    {
+        return (int) $this->db->table($this->table)->select('COUNT(*) as cnt')->get()->getRow('cnt');    }
 }
 
 ?>

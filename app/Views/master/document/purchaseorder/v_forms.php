@@ -27,22 +27,22 @@
             <input type="hidden" id="purchaseorderid" name="purchaseOrderId" value="<?= $id ?>">
         <?php } ?>
         <label class="required">Kode Transaksi :</label>
-        <input type="text" class="form-input fs-7" id="transactionCode" name="transactionCode" value="<?= (($form_type == 'edit') ? $row['transcode'] : '') ?>" placeholder="Masukan Kode Transaksi" required>
+        <input type="text" class="form-input fs-7" id="transactionCode" name="transactionCode" value="<?= ($form_type == 'edit') ? esc($row['transcode'] ?? '') : '' ?>" placeholder="Masukan Kode Transaksi" required>
     </div>
     <div class="form-group">
         <label class="required">Tanggal Transaksi :</label>
-        <input type="date" class="form-input fs-7" id="transactionDate" name="transactionDate" value="<?= (($form_type == 'edit') ? $row['transdate'] : '') ?>" placeholder="Masukan Tanggal Transaksi" required>
+        <input type="date" class="form-input fs-7" id="transactionDate" name="transactionDate" value="<?= ($form_type == 'edit') ? esc($row['transdate'] ?? '') : '' ?>" placeholder="Masukan Tanggal Transaksi" required>
     </div>
     <div class="form-group">
         <label>Supply Date :</label>
-        <input type="date" class="form-input fs-7" id="supplyDate" name="supplyDate" value="<?= (($form_type == 'edit') ? $row['supplydate'] : '') ?>" placeholder="Masukan Tanggal Supply">
+        <input type="date" class="form-input fs-7" id="supplyDate" name="supplyDate" value="<?= ($form_type == 'edit') ? esc($row['supplydate'] ?? '') : '' ?>" placeholder="Masukan Tanggal Supply">
     </div>
     <div class="form-group">
         <label class="required">Supplier:</label>
         <select class="form-input fs-7" id="supplierid" name="supplierId" required>
             <option value="">-- Pilih Supplier --</option>
             <?php foreach ($suppliers as $sup) : ?>
-                <option value="<?= $sup['id'] ?>" <?= ($form_type == 'edit' && $row['supplierid'] == $sup['id']) ? 'selected' : '' ?>>
+                <option value="<?= $sup['id'] ?>" <?= ($form_type == 'edit' && ($row['supplierid'] ?? null) == $sup['id']) ? 'selected' : '' ?>>
                     <?= esc($sup['suppliername']) ?>
                 </option>
             <?php endforeach ?>
@@ -50,13 +50,13 @@
     </div>
     <div class="form-group">
         <label class="required">Grand Total :</label>
-        <input type="number" class="form-input fs-7" id="grandTotal" name="grandTotal" value="<?= (($form_type == 'edit') ? $row['grandtotal'] : '') ?>" readonly>
+        <input type="number" class="form-input fs-7" id="grandTotal" name="grandTotal" value="<?= ($form_type == 'edit') ? esc($row['grandtotal'] ?? 0) : '' ?>" readonly>
     </div>
     <div class="form-group">
         <label>Description :</label>
-        <textarea class="form-input fs-7" id="description" name="description" placeholder="Masukan Deskripsi" rows="3"><?= (($form_type == 'edit') ? esc($row['description']) : '') ?></textarea>
+        <textarea class="form-input fs-7" id="description" name="description" placeholder="Masukan Deskripsi" rows="3"><?= ($form_type == 'edit') ? esc($row['description'] ?? '') : '' ?></textarea>
     </div>
-    <input type="hidden" id="csrf_token_form" name="<?= csrf_token() ?>">
+    <input type="hidden" id="csrf_token_select2" value="<?= csrf_hash() ?>">
     <div class="modal-footer" style="display: flex; justify-content: space-between;">
         <button type="button" class="btn btn-secondary" onclick="window.location.href='<?= base_url('purchaseorder') ?>'">Kembali</button>
         <div style="display: flex; gap: 10px;">
@@ -151,8 +151,9 @@
             ajax: {
                 url: "<?= getURL('purchaseorder/getdetailsajax') ?>",
                 type: "POST",
-                data: {
-                    headerId: '<?= encrypting($id) ?>'
+                data: function(d) {
+                    d.headerId = '<?= encrypting($id) ?>';
+                    d['<?= csrf_token() ?>'] = $('#csrf_token').val();
                 }
             },
             columns: [{
@@ -199,8 +200,38 @@
 
         });
 
+        function generateSelect2(selector, dropdownParent, url, placeholder) {
+            $(selector).select2({
+                dropdownParent: $(dropdownParent),
+                placeholder: placeholder,
+                allowClear: true,
+                ajax: {
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            searchTerm: params.term || '',
+                            '<?= csrf_token() ?>': $('#csrf_token_select2').val()
+                        };
+                    },
+                    processResults: function(data) {
+                        if (data.csrfToken) {
+                            $('#csrf_token').val(data.csrfToken);
+                            $('#csrf_token_select2').val(data.csrfToken);
+                        }
+                        return {
+                            results: data.data || []
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+
         generateSelect2('#supplierid', '#form-purchaseorder', '<?= base_url('purchaseorder/getsuppliers') ?>', 'Pilih Supplier');
-        generateSelect2('#productid', 'body', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product'); 
+        generateSelect2('#productid', 'body', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product');
         generateSelect2('#uomid', 'body', '<?= base_url('purchaseorder/getuoms') ?>', 'Pilih UOM');
 
         function ensureSelectOption($select, id, text) {
@@ -214,6 +245,14 @@
             const qty = parseFloat($('#qty').val()) || 0;
             const price = parseFloat($('#price').val()) || 0;
             $('#total').val(qty * price);
+        }
+
+        function resetDetailForm() {
+            $('#productid').val('').trigger('change');
+            $('#uomid').val('').trigger('change');
+            $('#qty').val('');
+            $('#price').val('');
+            $('#total').val('');
         }
 
         function calculateGrandTotal() {
@@ -284,18 +323,6 @@
             });
         }
 
-        /** ---------- reset form detail ---------- **/
-        function resetDetailForm() {
-            $('#productid').val('').trigger('change');
-            $('#uomid').val('').trigger('change');
-            $('#qty').val('');
-            $('#price').val('');
-            $('#total').val('');
-        }
-
-        /** ---------- tombol reset ---------- **/
-        $('#reset-detail-btn').on('click', resetDetailForm);
-
         /** ---------- add detail ---------- **/
         $('#add-detail-btn').off('click').on('click', function() {
             $(this).prop('disabled', true);
@@ -315,7 +342,8 @@
                 productId: productId,
                 uomId: uomId,
                 qty: qty,
-                price: price
+                price: price,
+                '<?= csrf_token() ?>': $('#csrf_token').val()
             };
 
             $.post('<?= getURL('purchaseorder/adddetail') ?>', payload, function(res) {
@@ -352,8 +380,6 @@
 
         $('#form-purchaseorder').on('submit', function(e) {
             e.preventDefault();
-            let csrf = decrypter($("#csrf_token").val());
-            $("#csrf_token").val(csrf);
             let form_type = '<?= $form_type ?>';
             let link = '<?= getURL('purchaseorder/add') ?>';
             if (form_type == 'edit') {
@@ -368,27 +394,28 @@
                 processData: false,
                 dataType: 'json',
                 success: function(response) {
-                    $("#csrf_token").val(encrypter(response.csrfToken));
-                    $("#csrf_token_form").val("");
+                    if (response.csrfToken) {
+                        $("#csrf_token").val(response.csrfToken);
+                    }
                     let pesan = response.pesan;
                     let notif = 'success';
                     if (response.sukses != '1') {
                         notif = 'error';
                     }
                     showNotif(notif, pesan);
-                     if (response.sukses == '1') {
-                         close_modal('modaldetail');
-                         if ($('#purchaseorderid').val()) {
-                             // edit
-                             window.location.href = '<?= base_url('purchaseorder') ?>';
-                         } else {
-                             // add
-                             window.location.href = '<?= base_url('purchaseorder/form/') ?>' + response.newId;
-                         }
-                         if (window.purchaseOrderTable) {
-                             window.purchaseOrderTable.ajax.reload(null, false);
-                         }
-                     }
+                    if (response.sukses == '1') {
+                        close_modal('modaldetail');
+                        if ($('#purchaseorderid').val()) {
+                            // edit
+                            window.location.href = '<?= base_url('purchaseorder') ?>';
+                        } else {
+                            // add
+                            window.location.href = '<?= base_url('purchaseorder/form/') ?>' + response.newId;
+                        }
+                        if (window.purchaseOrderTable) {
+                            window.purchaseOrderTable.ajax.reload(null, false);
+                        }
+                    }
                     $('#btn-submit').prop('disabled', false);
                 },
                 error: function(xhr, ajaxOptions, thrownError) {
