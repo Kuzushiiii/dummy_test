@@ -53,6 +53,7 @@ app/config/*
 uploads/*
 upload/*
 
+
 writable/cache/*
 !writable/cache/index.html
 
@@ -67,6 +68,8 @@ writable/uploads/*
 
 writable/debugbar/*
 !writable/debugbar/.gitkeep
+
+/writable/exports/*
 
 php_errors.log
 
