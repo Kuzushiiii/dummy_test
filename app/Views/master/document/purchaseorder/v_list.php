@@ -57,6 +57,10 @@
         line-height: 22px;
         font-weight: 600;
     }
+
+    #btnCloseExport {
+        padding: 5px 10px;
+    }
 </style>
 
 <?= $this->include('template/v_footer') ?>
@@ -80,7 +84,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" id="btnCancelExport" class="btn btn-danger btn-sm">Cancel</button>
-                <button type="button" id="btnCloseExport" class="btn btn-secondary btn-sm d-none" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" id="btnCloseExport" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -88,8 +92,9 @@
 <script>
     let currentExportId = null;
     let exportRunning = false;
-    let exportOffset = 0
+    let exportOffset = 0;
     const exportLimit = 500;
+    let currentProgress = 0;
 
     $('#btnExportExcel').on('click', function() {
         // kalau masih ada proses export berjalan, jangan mulai baru
@@ -105,6 +110,8 @@
     });
 
     function openExportModal() {
+        currentProgress = 0;
+
         $('#exportProgressBar')
             .css('width', '0%')
             .attr('aria-valuenow', 0)
@@ -127,6 +134,34 @@
         if (text) {
             $('#exportStatusText').text(text);
         }
+    }
+
+    // naikkan progress sedikit demi sedikit sampai targetPercent
+    function animateProgress(targetPercent) {
+        targetPercent = Math.min(100, Math.max(0, targetPercent)); // clamp 0-100
+
+        if (targetPercent <= currentProgress) {
+            return; // sudah sampai atau lewat, tidak perlu animasi
+        }
+
+        const step = 1; // naik 1% per frame
+        const interval = 20; // setiap 20ms (0.02 detik)
+
+        const timer = setInterval(function() {
+            if (!exportRunning && targetPercent < 100) {
+                // kalau proses dibatalkan di tengah, jangan lanjut animasi
+                clearInterval(timer);
+                return;
+            }
+
+            currentProgress += step;
+            if (currentProgress >= targetPercent) {
+                currentProgress = targetPercent;
+                clearInterval(timer);
+            }
+
+            updateProgressBar(currentProgress, `Memproses... ${currentProgress}%`);
+        }, interval);
     }
 
     function startExport() {
@@ -172,7 +207,8 @@
             }
 
             const progress = res.progress || 0;
-            updateProgressBar(progress, `Memproses... ${progress}%`);
+            // animasikan dari currentProgress ke progress yang dikirim backend
+            animateProgress(progress);
 
             // update offset untuk request berikutnya (kalau backend kirim offset_next)
             if (typeof res.offset_next !== 'undefined') {
@@ -182,15 +218,53 @@
             }
             if (res.finished) {
                 exportRunning = false;
-                updateProgressBar(100, 'Export selesai. Mengunduh file...');
+                animateProgress(100);
+                $('#exportStatusText').text('Export selesai. Mengunduh file...');
                 $('#btnCancelExport').addClass('d-none');
                 $('#btnCloseExport').removeClass('d-none');
 
-                // trigger download
-                window.location.href = '<?= getURL("purchaseorder/downloadExport"); ?>/' + currentExportId;
+                // trigger download via Blob
+                const downloadUrl = '<?= getURL("purchaseorder/downloadExport"); ?>/' + currentExportId;
 
-                // langsung tutup modal setelah selesai
-                $('#exportModal').modal('hide');
+                $.ajax({
+                    url: downloadUrl,
+                    method: 'GET',
+                    xhrFields: {
+                        responseType: 'blob'
+                    },
+                    success: function(blob, status, xhr) {
+                        // ambil filename dari header kalau ada
+                        let filename = 'Purchase_Order_<?= date('dmY') ?>.xlsx';
+                        const disposition = xhr.getResponseHeader('Content-Disposition');
+                        if (disposition && disposition.indexOf('filename=') !== -1) {
+                            const match = disposition.match(/filename="?([^"]+)"?/);
+                            if (match && match[1]) {
+                                filename = match[1];
+                            }
+                        }
+
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+
+                        // beri sedikit jeda sebelum menutup modal,
+                        // supaya klik download sempat diproses semua browser
+                        setTimeout(function() {
+                            $('#exportModal').modal('hide');
+                        }, 500);
+                    },
+                    error: function() {
+                        updateProgressBar(100, 'Export selesai tapi gagal mengunduh file');
+                        // kalau error, tetap tampilkan tombol "Tutup"
+                        $('#btnCancelExport').addClass('d-none');
+                        $('#btnCloseExport').removeClass('d-none');
+                    }
+                });
             } else {
                 // lanjut chunk berikutnya
                 setTimeout(processExportChunk, 400); // jeda 0.4 detik
@@ -212,8 +286,7 @@
             cancel: 1,
             '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
         }, function(res) {
-            // apapun responnya, anggap export dibatalkan
-            updateProgressBar(0, res.pesan || 'Export dibatalkan');
+            $('#exportStatusText').text(res.pesan || 'Export dibatalkan');
 
             $('#btnCancelExport').addClass('d-none');
             $('#btnCloseExport').removeClass('d-none');
@@ -224,7 +297,7 @@
                 keyboard: true
             });
         }, 'json').fail(function() {
-            updateProgressBar(0, 'Gagal membatalkan export');
+            $('#exportStatusText').text('Gagal membatalkan export');
             $('#btnCancelExport').addClass('d-none');
             $('#btnCloseExport').removeClass('d-none');
 
@@ -234,6 +307,7 @@
             });
         });
     }
+
     function submitData() {
         let link = $('#linksubmit').val(),
             transactionCode = $('#transactioncode').val(),

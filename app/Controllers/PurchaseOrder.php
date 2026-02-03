@@ -575,23 +575,10 @@ class PurchaseOrder extends BaseController
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        // simpan file sementara
+        // simpan state ke session (tanpa file fisik)
         $exportId  = uniqid('po_export_', true);
-        $tempDir   = WRITEPATH . 'exports';
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0777, true);
-        }
-        $tempFile  = $tempDir . DIRECTORY_SEPARATOR . $exportId . '.xlsx';
-
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($tempFile);
-
-        // simpan state ke session
         $session->set("export_po_{$exportId}", [
-            'file'       => $tempFile,
             'offset'     => 0,
-            'rowNumber'  => 2, // mulai dari baris kedua setelah header
-            'no'         => 1,
             'totalRows'  => $totalRows,
             'status'     => 'running',
         ]);
@@ -630,9 +617,6 @@ class PurchaseOrder extends BaseController
         if ($cancel) {
             $state['status'] = 'cancelled';
             $session->set("export_po_{$exportId}", $state);
-            if (is_file($state['file'])) {
-                unlink($state['file']);
-            }
 
             return $this->response->setJSON([
                 'sukses'    => 1,
@@ -654,16 +638,9 @@ class PurchaseOrder extends BaseController
 
         $limit  = $limitReq > 0 ? $limitReq : $this->exportlimit;
         $offset = is_numeric($offsetReq) ? (int) $offsetReq : $state['offset'];
-        $rowNumber = $state['rowNumber'];
-        $no        = $state['no'];
         $totalRows = $state['totalRows'];
 
-        // load file temp
-        $reader = IOFactory::createReader('Xlsx');
-        $spreadsheet = $reader->load($state['file']);
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // ambil chunk data
+        // ambil chunk data hanya untuk hitung progress
         $chunk = $this->ModelPoHd->getExportChunk($offset, $limit);
         if (empty($chunk)) {
             // tidak ada data lagi
@@ -678,27 +655,9 @@ class PurchaseOrder extends BaseController
             ]);
         }
 
-        // tulis data chunk ke sheet
-        foreach ($chunk as $row) {
-            $sheet->setCellValue('A' . $rowNumber, $no++);
-            $sheet->setCellValue('B' . $rowNumber, $row['transcode']);
-            $sheet->setCellValue('C' . $rowNumber, $row['transdate']);
-            $sheet->setCellValue('D' . $rowNumber, $row['supplydate']);
-            $sheet->setCellValue('E' . $rowNumber, $row['suppliername']);
-            $sheet->setCellValue('F' . $rowNumber, (float)($row['grandtotal'] ?? 0));
-            $sheet->setCellValue('G' . $rowNumber, $row['description']);
-            $rowNumber++;
-        }
-
-        // simpan kembali file
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($state['file']);
-
-        // update state
+        // update offset
         $offset += $limit;
-        $state['offset']    = $offset;
-        $state['rowNumber'] = $rowNumber;
-        $state['no']        = $no;
+        $state['offset'] = $offset;
 
         // hitung progress
         $processed = min($offset, $totalRows);
@@ -709,33 +668,6 @@ class PurchaseOrder extends BaseController
         }
 
         $session->set("export_po_{$exportId}", $state);
-
-        // jika sudah selesai, apply border ke semua baris data
-        if ($state['status'] === 'finished') {
-            // load ulang file
-            $readerFinal = IOFactory::createReader('Xlsx');
-            $spreadsheetFinal = $readerFinal->load($state['file']);
-            $sheetFinal = $spreadsheetFinal->getActiveSheet();
-
-            // style border untuk data
-            $dataStyle = [
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    ],
-                ],
-            ];
-
-            // baris data mulai di row 2 sampai rowNumber-1
-            $lastRow = max(2, $state['rowNumber'] - 1);
-            if ($lastRow >= 2) {
-                $sheetFinal->getStyle('A2:G' . $lastRow)->applyFromArray($dataStyle);
-            }
-
-            // simpan kembali
-            $writerFinal = new Xlsx($spreadsheetFinal);
-            $writerFinal->save($state['file']);
-        }
 
         return $this->response->setJSON([
             'sukses'      => 1,
@@ -748,26 +680,80 @@ class PurchaseOrder extends BaseController
         ]);
     }
 
-    // Step 3: Download file setelah selesai
+    // Step 3: Download file setelah selesai (stream, tanpa file fisik)
     public function downloadExport($exportId)
     {
         $session = session();
         $state   = $session->get("export_po_{$exportId}");
 
-        if (!$state || $state['status'] !== 'finished' || !is_file($state['file'])) {
+        if (!$state || $state['status'] !== 'finished') {
             return $this->response->setStatusCode(404)->setBody('File export tidak tersedia');
         }
 
-        $filename = 'Purchase_Order_' . date('dmY') . '.xlsx';
-        $filePath = $state['file'];
+        // buat spreadsheet baru di memory
+        $spreadsheet = new Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Purchase_Orders');
 
-        // apply styling akhir (border data, lebar kolom tambahan) dengan try/catch
-        try {
-            $readerFinal      = IOFactory::createReader('Xlsx');
-            $spreadsheetFinal = $readerFinal->load($filePath);
-            $sheetFinal       = $spreadsheetFinal->getActiveSheet();
+        // header kolom
+        $headers = ['No', 'TransCode', 'TransDate', 'Supply Date', 'Supplier', 'Grand Total', 'Description'];
+        $columns = range('A', 'G');
 
-            // style border untuk data
+        foreach ($columns as $idx => $col) {
+            $sheet->setCellValue($col . '1', $headers[$idx]);
+        }
+
+        // style header
+        $headerStyle = [
+            'font' => [
+                'bold'  => true,
+                'color' => ['argb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['argb' => '4CAF50'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
+
+        // isi data dengan chunk (hemat memory)
+        $rowNumber = 2;
+        $no        = 1;
+        $limit     = 500;
+        $offset    = 0;
+
+        do {
+            $chunk = $this->ModelPoHd->getExportChunk($offset, $limit);
+            if (empty($chunk)) {
+                break;
+            }
+
+            foreach ($chunk as $row) {
+                $sheet->setCellValue('A' . $rowNumber, $no++);
+                $sheet->setCellValue('B' . $rowNumber, $row['transcode']);
+                $sheet->setCellValue('C' . $rowNumber, $row['transdate']);
+                $sheet->setCellValue('D' . $rowNumber, $row['supplydate']);
+                $sheet->setCellValue('E' . $rowNumber, $row['suppliername']);
+                $sheet->setCellValue('F' . $rowNumber, (float)($row['grandtotal'] ?? 0));
+                $sheet->setCellValue('G' . $rowNumber, $row['description']);
+                $rowNumber++;
+            }
+
+            $offset += $limit;
+        } while (true);
+
+        // styling kolom dan data
+        foreach ($columns as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $lastRow = max(2, $rowNumber - 1);
+        if ($lastRow >= 2) {
             $dataStyle = [
                 'borders' => [
                     'allBorders' => [
@@ -775,35 +761,31 @@ class PurchaseOrder extends BaseController
                     ],
                 ],
             ];
-
-            // cari baris terakhir data (rowNumber terakhir tersimpan di state)
-            $lastRow = max(2, $state['rowNumber'] - 1);
-            if ($lastRow >= 2) {
-                $sheetFinal->getStyle('A2:G' . $lastRow)->applyFromArray($dataStyle);
-            }
-
-            // atur lebar khusus untuk kolom teks panjang
-            $sheetFinal->getColumnDimension('E')->setAutoSize(false)->setWidth(25); // Supplier
-            $sheetFinal->getColumnDimension('G')->setAutoSize(false)->setWidth(40); // Description
-            $sheetFinal->getStyle('G2:G' . $lastRow)->getAlignment()->setWrapText(true);
-
-            $writerFinal = new Xlsx($spreadsheetFinal);
-            $writerFinal->save($filePath);
-        } catch (\Throwable $e) {
-            log_message('error', 'PO downloadExport styling error: ' . $e->getMessage());
-            // kalau styling gagal, tetap lanjut kirim file apa adanya
+            $sheet->getStyle('A2:G' . $lastRow)->applyFromArray($dataStyle);
+            $sheet->getColumnDimension('E')->setAutoSize(false)->setWidth(25);
+            $sheet->getColumnDimension('G')->setAutoSize(false)->setWidth(40);
+            $sheet->getStyle('G2:G' . $lastRow)->getAlignment()->setWrapText(true);
         }
 
-        // optional: hapus state setelah download sekali
+        // hapus state export (opsional, di sini kita hapus)
         $session->remove("export_po_{$exportId}");
 
-        return $this->response
-            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
-            ->setHeader('Cache-Control', 'max-age=0')
-            ->download($filePath, null);
-    }
+        // kirim sebagai stream / blob
+        $filename = 'Purchase_Order_' . date('dmY') . '.xlsx';
+        $writer   = new Xlsx($spreadsheet);
 
+        if (ob_get_length()) {
+            @ob_end_clean();
+        }
+
+        // karena kita mau dipakai oleh fetch/XHR (Blob), kita hanya kirim binary & header
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
 
     public function printPdf($id, $withLogo = false)
     {
@@ -825,7 +807,7 @@ class PurchaseOrder extends BaseController
         /* ================= HEADER TABLE ================= */
 
         $headerHeight = 20;
-        
+
         $xStart = $pdf->GetX();
         $yStart = $pdf->GetY();
 
@@ -889,7 +871,7 @@ class PurchaseOrder extends BaseController
             $yTtd = $yRight + ($rowH) + 1;
             $pdf->Image($logottd, $xTtd, $yTtd, $ttdW - 15);
         }
-        
+
         $pdf->Ln(10);
 
         /* ================= INFO PO ================= */
