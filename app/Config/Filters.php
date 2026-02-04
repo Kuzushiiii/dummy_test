@@ -36,8 +36,8 @@ class Filters extends BaseFilters
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
-        'auth' => IsLogin::class,
-        'noauth' => IsNotLogin::class
+        'auth'  => IsNotLogin::class,
+        'noauth'=> IsLogin::class
     ];
 
     /**

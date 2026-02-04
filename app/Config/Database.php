@@ -26,10 +26,10 @@ class Database extends Config
      */
     public array $default = [
         'DSN'          => '',
-        'hostname'     => '10.21.1.110',
+        'hostname'     => '10.21.1.180',
         'username'     => 'postgres',
         'password'     => 'Tian0106',
-        'database'     => 'dummy_test_db',
+        'database'     => 'dummytest',
         'DBDriver'     => 'Postgre',
         'DBPrefix'     => '',
         'pConnect'     => false,

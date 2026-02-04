@@ -23,9 +23,32 @@ class IsNotLogin implements FilterInterface
      *
      * @return RequestInterface|ResponseInterface|string|void
      */
-    public function before(RequestInterface $request, $arguments = null)
+     public function before(RequestInterface $request, $arguments = null)
     {
         if (empty(getSession('userid'))) {
+            // full path, contoh: "dummy_test/public/purchaseorder/downloadExport/xxx"
+            $path = $request->getUri()->getPath();
+
+            $segments = explode('/', trim($path, '/'));
+            if (isset($segments[0]) && $segments[0] === 'dummy_test') {
+                array_shift($segments);
+            }
+            if (isset($segments[0]) && $segments[0] === 'public') {
+                array_shift($segments);
+            }
+            $cleanPath = implode('/', $segments); // contoh: "purchaseorder/downloadExport/xxx"
+
+            // Jika request ke endpoint export PurchaseOrder, jangan DIAPA-APAIN.
+            // Artinya: export boleh diakses tanpa login (no 401, no redirect).
+            if (
+                str_starts_with($cleanPath, 'purchaseorder/startExport')
+                || str_starts_with($cleanPath, 'purchaseorder/processExportChunk')
+                || str_starts_with($cleanPath, 'purchaseorder/downloadExport')
+            ) {
+                return; // skip redirect, biarkan controller jalan
+            }
+
+            // Untuk route lain tetap redirect ke halaman login
             return redirect()->to(base_url('login'));
         }
     }
