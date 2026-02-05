@@ -290,7 +290,7 @@ class MPurchaseOrder extends Model
 
     //
     public function countAllExport(): int
-    {
+    {   
         return (int) $this->db->table($this->table)->select('COUNT(*) as cnt')->get()->getRow('cnt');        
     }
 }

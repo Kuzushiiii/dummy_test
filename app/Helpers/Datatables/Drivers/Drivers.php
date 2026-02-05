@@ -45,14 +45,18 @@ class Drivers
                             } else if ($dbcolumn->isCallableQuery()) {
                                 $query = $dbcolumn->query($query, $dbcolumn->field($field), $dbcolumn->format($searchValue));
                             } else {
-                                $driverName = $query->getConnection()->getDriverName();
+                                // ambil nama driver dari koneksi builder
+                                $driverName = isset($query->db) && isset($query->db->DBDriver)
+                                    ? $query->db->DBDriver
+                                    : '';
+
                                 if (stripos($driverName, 'post') !== false) {
-                                    // PostgreSQL: use ILIKE for case-insensitive search
+                                    // PostgreSQL: case-insensitive search, gunakan ILIKE (escape=true)
                                     $index == 0
                                         ? $query->like($dbcolumn->field($field), $dbcolumn->format($searchValue), 'both', null, true)
                                         : $query->orLike($dbcolumn->field($field), $dbcolumn->format($searchValue), 'both', null, true);
                                 } else {
-                                    // Other databases: use LOWER() for case-insensitive search
+                                    // DB lain: pakai LOWER() untuk case-insensitive
                                     $index == 0
                                         ? $query->like("LOWER(" . $dbcolumn->field($field) . ")", $dbcolumn->format(strtolower($searchValue)))
                                         : $query->orLike("LOWER(" . $dbcolumn->field($field) . ")", $dbcolumn->format(strtolower($searchValue)));

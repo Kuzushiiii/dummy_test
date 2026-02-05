@@ -523,6 +523,7 @@ class PurchaseOrder extends BaseController
     //Step 1: membuat file sheet baru -> simpan file sementara -> simpan state di session
     public function startExport()
     {
+        log_message('debug', 'startExport called');
         $session = session();
 
         // hitung total data untuk progress
@@ -591,7 +592,7 @@ class PurchaseOrder extends BaseController
         ]);
     }
 
-    //Step 2: menerima exportId, limit, offset & ambil state dari session export_po_{exportId} -> ambil data chunk dari
+    //Step 2: menerima exportId, limit, offset & ambil state dari session export_po_{exportId} -> ambil data chunk dari model
     public function processExportChunk()
     {
         $session  = session();
@@ -683,11 +684,10 @@ class PurchaseOrder extends BaseController
     // Step 3: Download file setelah selesai (stream, tanpa file fisik)
     public function downloadExport($exportId)
     {
-        $session = session();
-        $state   = $session->get("export_po_{$exportId}");
-
-        if (!$state || $state['status'] !== 'finished') {
-            return $this->response->setStatusCode(404)->setBody('File export tidak tersedia');
+        // Di sini kita tidak lagi bergantung ke state session,
+        // cukup pastikan exportId dikirim (untuk validasi minimal).
+        if (empty($exportId)) {
+            return $this->response->setStatusCode(400)->setBody('exportId tidak valid');
         }
 
         // buat spreadsheet baru di memory
@@ -767,24 +767,23 @@ class PurchaseOrder extends BaseController
             $sheet->getStyle('G2:G' . $lastRow)->getAlignment()->setWrapText(true);
         }
 
-        // hapus state export (opsional, di sini kita hapus)
-        $session->remove("export_po_{$exportId}");
-
-        // kirim sebagai stream / blob
+         // kirim sebagai stream / blob via Response CI4
         $filename = 'Purchase_Order_' . date('dmY') . '.xlsx';
         $writer   = new Xlsx($spreadsheet);
 
+        // bersihkan output buffer jika ada
         if (ob_get_length()) {
             @ob_end_clean();
         }
 
-        // karena kita mau dipakai oleh fetch/XHR (Blob), kita hanya kirim binary & header
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
+        $tempFile = tempnam(sys_get_temp_dir(), 'po_export_') . '.xlsx';
+        $writer->save($tempFile);
 
-        $writer->save('php://output');
-        exit;
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
+            ->download($filename, file_get_contents($tempFile));
     }
 
     public function printPdf($id, $withLogo = false)

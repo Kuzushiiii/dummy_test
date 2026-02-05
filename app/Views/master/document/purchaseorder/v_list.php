@@ -217,55 +217,24 @@
                 exportOffset += exportLimit;
             }
             if (res.finished) {
+                console.log('Export finished, will download. exportId =', currentExportId);
                 exportRunning = false;
                 animateProgress(100);
                 $('#exportStatusText').text('Export selesai. Mengunduh file...');
                 $('#btnCancelExport').addClass('d-none');
                 $('#btnCloseExport').removeClass('d-none');
 
-                // trigger download via Blob
+                // setelah export selesai, langsung trigger download
                 const downloadUrl = '<?= getURL("purchaseorder/downloadExport"); ?>/' + currentExportId;
+                console.log('Download URL =', downloadUrl);
+                window.location.href = downloadUrl;
 
-                $.ajax({
-                    url: downloadUrl,
-                    method: 'GET',
-                    xhrFields: {
-                        responseType: 'blob'
-                    },
-                    success: function(blob, status, xhr) {
-                        // ambil filename dari header kalau ada
-                        let filename = 'Purchase_Order_<?= date('dmY') ?>.xlsx';
-                        const disposition = xhr.getResponseHeader('Content-Disposition');
-                        if (disposition && disposition.indexOf('filename=') !== -1) {
-                            const match = disposition.match(/filename="?([^"]+)"?/);
-                            if (match && match[1]) {
-                                filename = match[1];
-                            }
-                        }
-
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        window.URL.revokeObjectURL(url);
-
-                        // beri sedikit jeda sebelum menutup modal,
-                        // supaya klik download sempat diproses semua browser
-                        setTimeout(function() {
-                            $('#exportModal').modal('hide');
-                        }, 500);
-                    },
-                    error: function() {
-                        updateProgressBar(100, 'Export selesai tapi gagal mengunduh file');
-                        // kalau error, tetap tampilkan tombol "Tutup"
-                        $('#btnCancelExport').addClass('d-none');
-                        $('#btnCloseExport').removeClass('d-none');
-                    }
-                });
+                // tutup modal segera
+                setTimeout(function() {
+                    $('#exportModal').modal('hide');
+                }, 3000); // 3 detik
             } else {
+                console.log('Export not finished yet, next offset =', exportOffset);
                 // lanjut chunk berikutnya
                 setTimeout(processExportChunk, 400); // jeda 0.4 detik
             }
