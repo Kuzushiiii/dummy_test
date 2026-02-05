@@ -3,6 +3,20 @@
 <div class="main-content content margin-t-4">
     <div class="card p-x shadow-sm w-100">
         <div class="card-header dflex align-center justify-end" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+            <div class="col-md-3">
+                <label for="filterTransDateFrom" class="form-label">Trans. Date From</label>
+                <input type="date" id="filterTransDateFrom" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label for="filterTransDateTo" class="form-label">Trans. Date To</label>
+                <input type="date" id="filterTransDateTo" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3 ">
+                <label for="filterSupplier" class="form-label">Supplier</label>
+                <select id="filterSupplier" class="form-control form-control-sm">
+                    <option value="">All Supplier</option>
+                </select>
+            </div>
             <a href="<?= base_url('purchaseorder/form') ?>" class="btn btn-primary dflex align-center">
                 <i class="bx bx-plus-circle margin-r-2"></i>
                 <span class="fw-normal fs-7">Add New</span>
@@ -13,6 +27,7 @@
             </button>
         </div>
         <div class="card-body" style="background-color: #ffffff;">
+
             <div class="table-responsive margin-t-14p">
                 <table class="table table-striped table-bordered table-master fs-7 w-100">
                     <thead>
@@ -90,6 +105,76 @@
     </div>
 </div>
 <script>
+    // ====== DATATABLE + FILTER ======
+    let poTable = null;
+
+    $(document).ready(function() {
+        loadSuppliersFilter();
+
+        poTable = $('.table-master').DataTable({
+            processing: true,
+            serverSide: true,
+            destroy: true,
+            ajax: {
+                url: '<?= getURL("purchaseorder/table"); ?>',
+                type: 'POST',
+                data: function(d) {
+                    d.filterTransDateFrom = $('#filterTransDateFrom').val();
+                    d.filterTransDateTo = $('#filterTransDateTo').val();
+                    d.filterSupplier = $('#filterSupplier').val();
+                    d['<?= csrf_token() ?>'] = '<?= csrf_hash() ?>';
+                }
+            },
+            columns: [{
+                    data: 0
+                }, // No
+                {
+                    data: 1
+                }, // TransCode
+                {
+                    data: 2
+                }, // Tanggal Transaksi
+                {
+                    data: 3
+                }, // Tanggal Supply
+                {
+                    data: 4
+                }, // Supplier
+                {
+                    data: 5
+                }, // Grand Total
+                {
+                    data: 6
+                }, // Description
+                {
+                    data: 7
+                } // Actions
+            ]
+        });
+
+        $('#filterTransDateFrom, #filterTransDateTo, #filterSupplier').on('change', function() {
+            poTable.ajax.reload();
+        });
+    });
+
+    function loadSuppliersFilter() {
+        $.post('<?= getURL("purchaseorder/getsuppliers"); ?>', {
+            searchTerm: '',
+            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+        }, function(res) {
+            if (res.data) {
+                res.data.forEach(function(s) {
+                    $('#filterSupplier').append(
+                        $('<option>', {
+                            value: s.id,
+                            text: s.suppliername ?? s.text
+                        })
+                    );
+                });
+            }
+        }, 'json');
+    }
+
     let currentExportId = null;
     let exportRunning = false;
     let exportOffset = 0;
@@ -170,6 +255,9 @@
         exportOffset = 0;
 
         $.post('<?= getURL("purchaseorder/startExport"); ?>', {
+            filterTransDateFrom: $('#filterTransDateFrom').val(),
+            filterTransDateTo: $('#filterTransDateTo').val(),
+            filterSupplier: $('#filterSupplier').val(),
             '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
         }, function(res) {
             if (res.sukses == 1) {
@@ -196,6 +284,9 @@
             exportId: currentExportId,
             limit: exportLimit,
             offset: exportOffset,
+            filterTransDateFrom: $('#filterTransDateFrom').val(),
+            filterTransDateTo: $('#filterTransDateTo').val(),
+            filterSupplier: $('#filterSupplier').val(),
             '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
         }, function(res) {
             if (res.sukses != 1) {

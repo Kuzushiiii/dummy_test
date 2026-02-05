@@ -70,11 +70,14 @@ class PurchaseOrder extends BaseController
 
             $btn_print = $btn_print_no_logo . $btn_print_with_logo;
 
+            $transdate  = $db->transdate  ? date('d F Y', strtotime($db->transdate))  : '';
+            $supplydate = $db->supplydate ? date('d F Y', strtotime($db->supplydate)) : '';
+
             return [
                 $no,
                 esc($db->transcode),
-                esc($db->transdate),
-                esc($db->supplydate),
+                esc($transdate),
+                esc($supplydate),
                 esc($db->suppliername),
                 number_format((float)($db->grandtotal ?? 0), 0, ',', '.'),
                 esc($db->description),
@@ -521,13 +524,21 @@ class PurchaseOrder extends BaseController
     }
 
     //Step 1: membuat file sheet baru -> simpan file sementara -> simpan state di session
-    public function startExport()
+     public function startExport()
     {
         log_message('debug', 'startExport called');
         $session = session();
 
-        // hitung total data untuk progress
-        $totalRows = $this->ModelPoHd->countAllExport(); // perlu ditambahkan di model
+        $filterTransDateFrom = $this->request->getPost('filterTransDateFrom');
+        $filterTransDateTo   = $this->request->getPost('filterTransDateTo');
+        $filterSupplier      = $this->request->getPost('filterSupplier');
+
+        // hitung total data untuk progress (sesuai filter)
+        $totalRows = $this->ModelPoHd->countExportFiltered(
+            $filterTransDateFrom,
+            $filterTransDateTo,
+            $filterSupplier
+        );
         if ($totalRows <= 0) {
             return $this->response->setJSON([
                 'sukses' => 0,
@@ -582,6 +593,11 @@ class PurchaseOrder extends BaseController
             'offset'     => 0,
             'totalRows'  => $totalRows,
             'status'     => 'running',
+            'filter'     => [
+                'transDateFrom' => $filterTransDateFrom,
+                'transDateTo'   => $filterTransDateTo,
+                'supplierId'    => $filterSupplier,
+            ],
         ]);
 
         return $this->response->setJSON([
@@ -637,12 +653,25 @@ class PurchaseOrder extends BaseController
         $limitReq  = (int) $this->request->getPost('limit');
         $offsetReq = $this->request->getPost('offset');
 
-        $limit  = $limitReq > 0 ? $limitReq : $this->exportlimit;
+         $limit  = $limitReq > 0 ? $limitReq : $this->exportlimit;
         $offset = is_numeric($offsetReq) ? (int) $offsetReq : $state['offset'];
         $totalRows = $state['totalRows'];
 
+        $filter = $state['filter'] ?? [
+            'transDateFrom' => null,
+            'transDateTo'   => null,
+            'supplierId'    => null,
+        ];
+
         // ambil chunk data hanya untuk hitung progress
-        $chunk = $this->ModelPoHd->getExportChunk($offset, $limit);
+        $chunk = $this->ModelPoHd->getExportChunk(
+            $offset,
+            $limit,
+            $filter['transDateFrom'] ?? null,
+            $filter['transDateTo']   ?? null,
+            $filter['supplierId']    ?? null
+        );
+
         if (empty($chunk)) {
             // tidak ada data lagi
             $state['status'] = 'finished';
@@ -684,11 +713,21 @@ class PurchaseOrder extends BaseController
     // Step 3: Download file setelah selesai (stream, tanpa file fisik)
     public function downloadExport($exportId)
     {
-        // Di sini kita tidak lagi bergantung ke state session,
-        // cukup pastikan exportId dikirim (untuk validasi minimal).
         if (empty($exportId)) {
             return $this->response->setStatusCode(400)->setBody('exportId tidak valid');
         }
+
+        $session = session();
+        $state   = $session->get("export_po_{$exportId}");
+        if (!$state) {
+            return $this->response->setStatusCode(400)->setBody('State export tidak ditemukan / kadaluarsa');
+        }
+
+        $filter = $state['filter'] ?? [
+            'transDateFrom' => null,
+            'transDateTo'   => null,
+            'supplierId'    => null,
+        ];
 
         // buat spreadsheet baru di memory
         $spreadsheet = new Spreadsheet();
@@ -728,7 +767,13 @@ class PurchaseOrder extends BaseController
         $offset    = 0;
 
         do {
-            $chunk = $this->ModelPoHd->getExportChunk($offset, $limit);
+            $chunk = $this->ModelPoHd->getExportChunk(
+                $offset,
+                $limit,
+                $filter['transDateFrom'] ?? null,
+                $filter['transDateTo']   ?? null,
+                $filter['supplierId']    ?? null
+            );
             if (empty($chunk)) {
                 break;
             }
@@ -736,8 +781,16 @@ class PurchaseOrder extends BaseController
             foreach ($chunk as $row) {
                 $sheet->setCellValue('A' . $rowNumber, $no++);
                 $sheet->setCellValue('B' . $rowNumber, $row['transcode']);
-                $sheet->setCellValue('C' . $rowNumber, $row['transdate']);
-                $sheet->setCellValue('D' . $rowNumber, $row['supplydate']);
+
+                $transdate  = !empty($row['transdate'])
+                    ? date('d F Y', strtotime($row['transdate']))
+                    : '';
+                $supplydate = !empty($row['supplydate'])
+                    ? date('d F Y', strtotime($row['supplydate']))
+                    : '';
+
+                $sheet->setCellValue('C' . $rowNumber, $transdate);
+                $sheet->setCellValue('D' . $rowNumber, $supplydate);
                 $sheet->setCellValue('E' . $rowNumber, $row['suppliername']);
                 $sheet->setCellValue('F' . $rowNumber, (float)($row['grandtotal'] ?? 0));
                 $sheet->setCellValue('G' . $rowNumber, $row['description']);

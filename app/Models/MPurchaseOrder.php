@@ -41,16 +41,43 @@ class MPurchaseOrder extends Model
         ];
     }
 
-    //menyusun query utama untuk list PO 
+    // menyusun query utama untuk list PO (dengan filter transdate & supplier)
     public function datatable()
     {
+        $request = service('request');
+
+        $filterTransDateFrom = $request->getPost('filterTransDateFrom');
+        $filterTransDateTo   = $request->getPost('filterTransDateTo');
+        $filterSupplier      = $request->getPost('filterSupplier');
+
         $builder = $this->db->table($this->table . ' as poh');
 
-        $builder->select('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername, 
-                      COALESCE(SUM(CASE WHEN dt.isactive = true THEN dt.qty * dt.price ELSE 0 END), 0) as grandtotal')
+        $builder->select('
+                poh.id,
+                poh.transcode,
+                poh.transdate,
+                poh.supplydate,
+                poh.description,
+                mssupplier.suppliername, 
+                COALESCE(SUM(CASE WHEN dt.isactive = true THEN dt.qty * dt.price ELSE 0 END), 0) as grandtotal
+            ')
             ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
-            ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left')
-            ->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername')
+            ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left');
+
+        // FILTER BY TRANSDATE
+        if (!empty($filterTransDateFrom)) {
+            $builder->where('poh.transdate >=', $filterTransDateFrom);
+        }
+        if (!empty($filterTransDateTo)) {
+            $builder->where('poh.transdate <=', $filterTransDateTo);
+        }
+
+        // FILTER BY SUPPLIER
+        if (!empty($filterSupplier)) {
+            $builder->where('poh.supplierid', $filterSupplier);
+        }
+
+        $builder->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername')
             ->orderBy('poh.transcode', 'ASC');
 
         return $builder;
@@ -267,9 +294,14 @@ class MPurchaseOrder extends Model
             ->getRowArray();
     }
 
-    public function getExportChunk($offset, $limit): array
-    {
-        return $this->db->table('trpurchaseorderhd as poh')
+     public function getExportChunk(
+        int $offset,
+        int $limit,
+        ?string $transDateFrom = null,
+        ?string $transDateTo = null,
+        ?string $supplierId = null
+    ): array {
+        $builder = $this->db->table('trpurchaseorderhd as poh')
             ->select('
                 poh.id,
                 poh.transcode,
@@ -280,7 +312,19 @@ class MPurchaseOrder extends Model
                 COALESCE(SUM(CASE WHEN dt.isactive = true THEN dt.qty * dt.price ELSE 0 END), 0) as grandtotal
             ')
             ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
-            ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left')
+            ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left');
+
+        if (!empty($transDateFrom)) {
+            $builder->where('poh.transdate >=', $transDateFrom);
+        }
+        if (!empty($transDateTo)) {
+            $builder->where('poh.transdate <=', $transDateTo);
+        }
+        if (!empty($supplierId)) {
+            $builder->where('poh.supplierid', $supplierId);
+        }
+
+        return $builder
             ->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername')
             ->orderBy('poh.transcode', 'ASC')
             ->limit($limit, $offset)
@@ -292,6 +336,26 @@ class MPurchaseOrder extends Model
     public function countAllExport(): int
     {   
         return (int) $this->db->table($this->table)->select('COUNT(*) as cnt')->get()->getRow('cnt');        
+    }
+
+    public function countExportFiltered(
+        ?string $transDateFrom = null,
+        ?string $transDateTo = null,
+        ?string $supplierId = null
+    ): int {
+        $builder = $this->db->table($this->table . ' as poh');
+
+        if (!empty($transDateFrom)) {
+            $builder->where('poh.transdate >=', $transDateFrom);
+        }
+        if (!empty($transDateTo)) {
+            $builder->where('poh.transdate <=', $transDateTo);
+        }
+        if (!empty($supplierId)) {
+            $builder->where('poh.supplierid', $supplierId);
+        }
+
+        return (int) $builder->select('COUNT(*) as cnt')->get()->getRow('cnt');
     }
 }
 
