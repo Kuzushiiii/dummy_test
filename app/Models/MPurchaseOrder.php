@@ -29,15 +29,14 @@ class MPurchaseOrder extends Model
     public function searchable()
     {
         return [
-            null,
-            "poh.transcode",
-            "poh.transdate::text",
-            "poh.supplydate::text",
-            "mssupplier.suppliername",
-            "poh.grandtotal::text",
-            "poh.description",
-            null,
-            null,
+            null,                           // 0 - No (tidak searchable / orderable)
+            'poh.transcode',                // 1 - text
+            'poh.transdate::text',          // 2 - date -> cast ke text
+            'poh.supplydate::text',         // 3 - date -> cast ke text
+            'mssupplier.suppliername',      // 4 - text
+            'poh.grandtotal::text',         // 5 - numeric -> cast ke text
+            'poh.description',              // 6 - text
+            null,                           // 7 - Actions
         ];
     }
 
@@ -65,11 +64,16 @@ class MPurchaseOrder extends Model
             ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left');
 
         // FILTER BY TRANSDATE
-        if (!empty($filterTransDateFrom)) {
-            $builder->where('poh.transdate >=', $filterTransDateFrom);
-        }
-        if (!empty($filterTransDateTo)) {
-            $builder->where('poh.transdate <=', $filterTransDateTo);
+        if (!empty($filterTransDateFrom) && empty($filterTransDateTo)) {
+            // kalau hanya From yang diisi, anggap filter persis tanggal itu
+            $builder->where('poh.transdate', $filterTransDateFrom);
+        } else {
+            if (!empty($filterTransDateFrom)) {
+                $builder->where('poh.transdate >=', $filterTransDateFrom);
+            }
+            if (!empty($filterTransDateTo)) {
+                $builder->where('poh.transdate <=', $filterTransDateTo);
+            }
         }
 
         // FILTER BY SUPPLIER
@@ -86,14 +90,14 @@ class MPurchaseOrder extends Model
     //mengambil 1 data header
     public function getOne($id)
     {
-        return $this->db->table($this->table)->where('id', $id)->get()->getRowArray();        
+        return $this->db->table($this->table)->where('id', $id)->get()->getRowArray();
     }
 
     //insert data header    
     public function store($data)
     {
-        $this->db->table($this->table)->insert($data); 
-        return $this->db->insertID();   
+        $this->db->table($this->table)->insert($data);
+        return $this->db->insertID();
     }
 
     //update data header
@@ -177,7 +181,7 @@ class MPurchaseOrder extends Model
                 number_format($row['price'], 3, ',', '.'),
                 number_format($row['qty'] * $row['price'], 3, ',', '.'),
                 '<button class="btn btn-sm btn-warning" onclick="editDetail(' . $row['id'] . ', \'' . $row['productid'] . '\', \'' . $row['uomid'] . '\', \'' . $row['qty'] . '\', \'' . $row['price'] . '\', \'' . addslashes($row['productname']) . '\', \'' . addslashes($row['uomnm']) . '\')"><i class="bx bx-edit-alt"></i></button> ' .
-                '<button class="btn btn-sm btn-danger" onclick="modalDelete(\'Hapus Detail Purchase Order - ' . addslashes($row['productname']) . '\', {\'link\':\'' . getURL('purchaseorder/deletedetail') . '\', \'id\':\'' . $row['id'] . '\', \'pagetype\':\'table\', \'table-id\':\'detailsTable\'})"><i class="bx bx-trash"></i></button>'
+                    '<button class="btn btn-sm btn-danger" onclick="modalDelete(\'Hapus Detail Purchase Order - ' . addslashes($row['productname']) . '\', {\'link\':\'' . getURL('purchaseorder/deletedetail') . '\', \'id\':\'' . $row['id'] . '\', \'pagetype\':\'table\', \'table-id\':\'detailsTable\'})"><i class="bx bx-trash"></i></button>'
             ];
         }, $data);
 
@@ -201,7 +205,7 @@ class MPurchaseOrder extends Model
     }
 
     //menghapus data detaul (soft delete)
-    public function deleteDetail($id) 
+    public function deleteDetail($id)
     {
         return $this->db->table('trpurchaseorderdt')->update(['isactive' => false], ['id' => $id]);
     }
@@ -294,7 +298,7 @@ class MPurchaseOrder extends Model
             ->getRowArray();
     }
 
-     public function getExportChunk(
+    public function getExportChunk(
         int $offset,
         int $limit,
         ?string $transDateFrom = null,
@@ -314,11 +318,15 @@ class MPurchaseOrder extends Model
             ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
             ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left');
 
-        if (!empty($transDateFrom)) {
-            $builder->where('poh.transdate >=', $transDateFrom);
-        }
-        if (!empty($transDateTo)) {
-            $builder->where('poh.transdate <=', $transDateTo);
+        if (!empty($transDateFrom) && empty($transDateTo)) {
+            $builder->where('poh.transdate', $transDateFrom);
+        } else {
+            if (!empty($transDateFrom)) {
+                $builder->where('poh.transdate >=', $transDateFrom);
+            }
+            if (!empty($transDateTo)) {
+                $builder->where('poh.transdate <=', $transDateTo);
+            }
         }
         if (!empty($supplierId)) {
             $builder->where('poh.supplierid', $supplierId);
@@ -334,8 +342,8 @@ class MPurchaseOrder extends Model
 
     //
     public function countAllExport(): int
-    {   
-        return (int) $this->db->table($this->table)->select('COUNT(*) as cnt')->get()->getRow('cnt');        
+    {
+        return (int) $this->db->table($this->table)->select('COUNT(*) as cnt')->get()->getRow('cnt');
     }
 
     public function countExportFiltered(
@@ -345,11 +353,15 @@ class MPurchaseOrder extends Model
     ): int {
         $builder = $this->db->table($this->table . ' as poh');
 
-        if (!empty($transDateFrom)) {
-            $builder->where('poh.transdate >=', $transDateFrom);
-        }
-        if (!empty($transDateTo)) {
-            $builder->where('poh.transdate <=', $transDateTo);
+        if (!empty($transDateFrom) && empty($transDateTo)) {
+            $builder->where('poh.transdate', $transDateFrom);
+        } else {
+            if (!empty($transDateFrom)) {
+                $builder->where('poh.transdate >=', $transDateFrom);
+            }
+            if (!empty($transDateTo)) {
+                $builder->where('poh.transdate <=', $transDateTo);
+            }
         }
         if (!empty($supplierId)) {
             $builder->where('poh.supplierid', $supplierId);
@@ -358,5 +370,3 @@ class MPurchaseOrder extends Model
         return (int) $builder->select('COUNT(*) as cnt')->get()->getRow('cnt');
     }
 }
-
-?>

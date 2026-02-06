@@ -2,29 +2,50 @@
 <?= $this->include('template/v_appbar') ?>
 <div class="main-content content margin-t-4">
     <div class="card p-x shadow-sm w-100">
-        <div class="card-header dflex align-center justify-end" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-            <div class="col-md-3">
-                <label for="filterTransDateFrom" class="form-label">Trans. Date From</label>
-                <input type="date" id="filterTransDateFrom" class="form-control form-control-sm">
+        <div class="card-header dflex align-center justify-between"
+            style="background-color:#f8f9fa;border-bottom:1px solid #dee2e6;padding-top:10px;padding-bottom:10px;margin-bottom:8px;">
+            <!-- kiri filter-->
+            <div class="dflex align-center" style="gap:16px;flex-wrap:wrap;">
+                <div class="dflex align-center" style="gap:6px; padding-left:10px;">
+                    <label for="filterTransDateFrom" class="mb-0" style="white-space:nowrap;font-size:14px;">
+                        Transaksi Dari Tanggal
+                    </label>
+                    <input type="date" id="filterTransDateFrom" class="form-control form-control-sm" style="min-width:150px;">
+                </div>
+                <div class="dflex align-center" style="gap:6px;">
+                    <label for="filterTransDateTo" class="mb-0" style="white-space:nowrap;font-size:14px;">
+                        Sampai Tanggal
+                    </label>
+                    <input type="date" id="filterTransDateTo" class="form-control form-control-sm" style="min-width:150px;">
+                </div>
+                <div class="dflex align-center" style="gap:8px;">
+                    <label for="filterSupplier" class="mb-0" style="white-space:nowrap;font-size:14px;">
+                        Supplier
+                    </label>
+                    <select id="filterSupplier" class="form-control form-control-sm" style="min-width:220px;">
+                        <option value="">All Supplier</option>
+                    </select>
+                    <button type="button" id="btnApplyFilter" class="btn btn-sm btn-primary me-1">
+                        <i class="bx bx-search"></i>
+                        Apply
+                    </button>
+                    <button type="button" id="btnResetFilter" class="btn btn-sm btn-info me-1">
+                        <i class="bx bx-reset"></i>
+                        Reset
+                    </button>
+                </div>
             </div>
-            <div class="col-md-3">
-                <label for="filterTransDateTo" class="form-label">Trans. Date To</label>
-                <input type="date" id="filterTransDateTo" class="form-control form-control-sm">
+            <!-- kanan: tombol -->
+            <div class="dflex align-center" style="gap:6px; padding-right:10px">
+                <a href="<?= base_url('purchaseorder/form') ?>" class="btn btn-primary btn-sm dflex align-center">
+                    <i class="bx bx-plus-circle margin-r-2"></i>
+                    <span class="fw-normal fs-7">Add New</span>
+                </a>
+                <button type="button" id="btnExportExcel" class="btn btn-success btn-sm dflex align-center">
+                    <i class="bx bx-file margin-r-2"></i>
+                    <span class="fw-normal fs-7">Export Excel</span>
+                </button>
             </div>
-            <div class="col-md-3 ">
-                <label for="filterSupplier" class="form-label">Supplier</label>
-                <select id="filterSupplier" class="form-control form-control-sm">
-                    <option value="">All Supplier</option>
-                </select>
-            </div>
-            <a href="<?= base_url('purchaseorder/form') ?>" class="btn btn-primary dflex align-center">
-                <i class="bx bx-plus-circle margin-r-2"></i>
-                <span class="fw-normal fs-7">Add New</span>
-            </a>
-            <button type="button" id="btnExportExcel" class="btn btn-success btn-sm dflex align-center margin-l-2">
-                <i class="bx bx-file margin-r-2"></i>
-                <span class="fw-normal fs-7">Export Excel</span>
-            </button>
         </div>
         <div class="card-body" style="background-color: #ffffff;">
 
@@ -109,6 +130,13 @@
     let poTable = null;
 
     $(document).ready(function() {
+        $('#filterSupplier').select2({
+            placeholder: 'All Supplier',
+            allowClear: true,
+            width: 'resolve',
+            dropdownAutoWidth: true
+        });
+
         loadSuppliersFilter();
 
         poTable = $('.table-master').DataTable({
@@ -148,11 +176,29 @@
                 }, // Description
                 {
                     data: 7
-                } // Actions
+                } // Actions              
             ]
         });
 
-        $('#filterTransDateFrom, #filterTransDateTo, #filterSupplier').on('change', function() {
+        // tombol apply filter
+        $('#btnApplyFilter').on('click', function() {
+            const from = $('#filterTransDateFrom').val();
+            const to = $('#filterTransDateTo').val();
+
+            // validasi sederhana: from tidak boleh > to
+            if (from && to && from > to) {
+                alert('Tanggal awal tidak boleh lebih besar dari tanggal akhir');
+                return;
+            }
+
+            poTable.ajax.reload();
+        });
+
+        // tombol reset filter
+        $('#btnResetFilter').on('click', function() {
+            $('#filterTransDateFrom').val('');
+            $('#filterTransDateTo').val('');
+            $('#filterSupplier').val(null).trigger('change');
             poTable.ajax.reload();
         });
     });
