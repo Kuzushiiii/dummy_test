@@ -31,10 +31,10 @@ class MPurchaseOrder extends Model
         return [
             null,                           // 0 - No (tidak searchable / orderable)
             'poh.transcode',                // 1 - text
-            'poh.transdate::text',          // 2 - date -> cast ke text
-            'poh.supplydate::text',         // 3 - date -> cast ke text
+            'poh.transdate',          // 2 - date -> cast ke text
+            'poh.supplydate',         // 3 - date -> cast ke text
             'mssupplier.suppliername',      // 4 - text
-            'poh.grandtotal::text',         // 5 - numeric -> cast ke text
+            'poh.grandtotal',         // 5 - numeric -> cast ke text
             'poh.description',              // 6 - text
             null,                           // 7 - Actions
         ];
@@ -81,8 +81,7 @@ class MPurchaseOrder extends Model
             $builder->where('poh.supplierid', $filterSupplier);
         }
 
-        $builder->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername')
-            ->orderBy('poh.transcode', 'ASC');
+        $builder->groupBy('poh.id, poh.transcode, poh.transdate, poh.supplydate, poh.description, mssupplier.suppliername');
 
         return $builder;
     }
