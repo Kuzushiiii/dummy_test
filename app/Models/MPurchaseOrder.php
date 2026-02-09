@@ -31,10 +31,10 @@ class MPurchaseOrder extends Model
         return [
             null,                           // 0 - No (tidak searchable / orderable)
             'poh.transcode',                // 1 - text
-            'poh.transdate',          // 2 - date -> cast ke text
-            'poh.supplydate',         // 3 - date -> cast ke text
+            null,                           // 2 - Transdate (tidak searchable / pakai filter data)
+            null,                           // 3 - Supplydate (tidak searchable / pakai filter data)
             'mssupplier.suppliername',      // 4 - text
-            'poh.grandtotal',         // 5 - numeric -> cast ke text
+            null,                           // 5 - Grandtotal (tidak searchable / orderable)
             'poh.description',              // 6 - text
             null,                           // 7 - Actions
         ];

@@ -10,13 +10,13 @@
                     <label for="filterTransDateFrom" class="mb-0" style="white-space:nowrap;font-size:14px;">
                         Transaksi Dari Tanggal
                     </label>
-                    <input type="date" id="filterTransDateFrom" class="form-control form-control-sm" style="min-width:150px;">
+                    <input type="date" id="filterTransDateFrom" class="form-control form-control-sm date-filter-input">
                 </div>
                 <div class="dflex align-center" style="gap:6px;">
                     <label for="filterTransDateTo" class="mb-0" style="white-space:nowrap;font-size:14px;">
                         Sampai Tanggal
                     </label>
-                    <input type="date" id="filterTransDateTo" class="form-control form-control-sm" style="min-width:150px;">
+                    <input type="date" id="filterTransDateTo" class="form-control form-control-sm date-filter-input">
                 </div>
                 <div class="dflex align-center" style="gap:8px;">
                     <label for="filterSupplier" class="mb-0" style="white-space:nowrap;font-size:14px;">
@@ -72,6 +72,16 @@
 </div>
 
 <style>
+    .date-filter-input {
+        width: 110px;
+        /* paksa lebar input */
+        max-width: 110px;
+        display: inline-block;
+        /* jaga supaya patuh ukuran custom */
+        padding-right: 0.25rem;
+        /* opsional, biar icon kalender tidak kepotong */
+    }
+
     #exportModal .modal-footer {
         padding: 1rem;
         /* jarak atas-bawah footer */
