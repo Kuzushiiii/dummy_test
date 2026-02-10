@@ -9,20 +9,30 @@
         </div>
     </div>
 
-    <!-- PROGRESS AREA (dalam modal yang sama, seperti user) -->
-    <div id="import-progress-wrap" class="hiding" style="margin-top: 10px;">
-        <div class="mb-2">
-            <div class="progress">
-                <div id="importProgressBarPo" class="progress-bar" role="progressbar"
-                    style="width:0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+    <!-- PROGRESS AREA -->
+    <div id="import-progress-wrap" class="hiding import-progress-wrap">
+        <div class="mb-1">
+            <div class="progress import-progress">
+                <div id="importProgressBarPo"
+                    class="progress-bar import-progress-bar"
+                    role="progressbar"
+                    aria-valuenow="0"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    style="width:0%;">
                     0%
                 </div>
             </div>
         </div>
-        <div class="small">
-            <span id="importStatusTextPo">Menyiapkan data...</span>
-            <span class="text-primary" id="importProcessedPo">0</span> /
-            <span class="text-primary" id="importTotalPo">0</span>
+        <div class="d-flex justify-content-between align-items-center import-progress-info">
+            <div class="small text-muted" id="importStatusTextPo">
+                Menyiapkan data...
+            </div>
+            <div class="small">
+                <span class="text-primary fw-semibold" id="importProcessedPo">0</span>
+                <span class="text-muted">/</span>
+                <span class="text-primary fw-semibold" id="importTotalPo">0</span>
+            </div>
         </div>
     </div>
 
@@ -48,18 +58,100 @@
 
 <script>
     function downloadPoTemplate() {
-        var url = '<?= base_url('/downloadable/Template Purchase Order.xlsx') ?>';
+        var url = '<?= base_url('/downloadable/Template PurchaseOrder.xlsx') ?>';
         window.location.href = url;
     }
 
-    function updateImportUiProgressPo(percent, processed, total, text) {
-        $('#importProgressBarPo')
-            .css('width', percent + '%')
-            .attr('aria-valuenow', percent)
-            .text(percent + '%');
-        if (text) {
-            $('#importStatusTextPo').text(text);
+    // ===== ANIMASI TITIK-TITIK UNTUK STATUS IMPORT PO =====
+    let statusPoInterval = null;
+    let statusPoBaseText = '';
+
+    function startStatusAnimationPo(baseText) {
+        statusPoBaseText = baseText || '';
+        stopStatusAnimationPo(); // pastikan tidak dobel
+        let dots = 0;
+        statusPoInterval = setInterval(function() {
+            dots = (dots + 1) % 4; // 0–3 titik
+            $('#importStatusTextPo').text(statusPoBaseText + '.'.repeat(dots));
+        }, 400);
+    }
+
+    function stopStatusAnimationPo(finalText) {
+        if (statusPoInterval) {
+            clearInterval(statusPoInterval);
+            statusPoInterval = null;
         }
+        if (finalText !== undefined) {
+            $('#importStatusTextPo').text(finalText);
+        }
+    }
+    // =====================================================
+
+    // simpan progress import saat ini (untuk animasi)
+    let currentImportUiProgress = 0;
+    let importProgressTimer = null;
+
+    // animasikan progress bar import dari nilai sekarang ke targetPercent
+    function animateImportProgress(targetPercent, baseText) {
+        targetPercent = Math.min(100, Math.max(0, targetPercent));
+
+        if (targetPercent <= currentImportUiProgress) {
+            // kalau target <= current, cukup update teks status saja
+            if (baseText) {
+                startStatusAnimationPo(baseText);
+            }
+            return;
+        }
+
+        if (importProgressTimer) {
+            clearInterval(importProgressTimer);
+            importProgressTimer = null;
+        }
+
+        const step = 1; // naik 1% per tick
+        const interval = 20; // 20ms per tick ~ 0.5s utk naik 25%
+
+        importProgressTimer = setInterval(function() {
+            currentImportUiProgress += step;
+            if (currentImportUiProgress >= targetPercent) {
+                currentImportUiProgress = targetPercent;
+                clearInterval(importProgressTimer);
+                importProgressTimer = null;
+            }
+
+            $('#importProgressBarPo')
+                .css('width', currentImportUiProgress + '%')
+                .attr('aria-valuenow', currentImportUiProgress)
+                .text(currentImportUiProgress + '%');
+
+            if (baseText) {
+                startStatusAnimationPo(baseText);
+            }
+        }, interval);
+    }
+
+    function updateImportUiProgressPo(percent, processed, total, text, withAnimation = false) {
+        if (withAnimation) {
+            // pakai animasi halus dari currentImportUiProgress ke percent
+            animateImportProgress(percent, text);
+        } else {
+            // update langsung tanpa animasi
+            if (importProgressTimer) {
+                clearInterval(importProgressTimer);
+                importProgressTimer = null;
+            }
+            currentImportUiProgress = percent;
+            $('#importProgressBarPo')
+                .css('width', percent + '%')
+                .attr('aria-valuenow', percent)
+                .text(percent + '%');
+
+            if (text) {
+                stopStatusAnimationPo();
+                $('#importStatusTextPo').text(text);
+            }
+        }
+
         if (processed != null) {
             $('#importProcessedPo').text(processed);
         }
@@ -72,17 +164,36 @@
     function handleImportProgressUpdate(progress, res) {
         let processed = res.processed || 0;
         let total = res.totalRows || $('#importTotalPo').text() || 0;
-        updateImportUiProgressPo(progress, processed, total, `Memproses... ${progress}%`);
+        // selama proses berjalan, pakai animasi titik-titik
+        updateImportUiProgressPo(
+            progress,
+            processed,
+            total,
+            `Memproses ${progress}%`,
+            true
+        );
     }
 
     function handleImportProgressError(pesan) {
         $('#btnProcessImportPo').removeAttr('disabled');
         $('#btnCancelImportPo').removeAttr('disabled');
         $('#po_excelfile').removeAttr('disabled');
-        $('#importStatusTextPo').text(pesan);
+
+        if (importProgressTimer) {
+            clearInterval(importProgressTimer);
+            importProgressTimer = null;
+        }
+        // stop animasi dan tampilkan pesan error final
+        stopStatusAnimationPo(pesan);
     }
 
     function handleImportFinished(res) {
+        // stop animasi dulu
+        if (importProgressTimer) {
+            clearInterval(importProgressTimer);
+            importProgressTimer = null;
+        }
+        stopStatusAnimationPo();
         updateImportUiProgressPo(
             100,
             res.totalRows || $('#importTotalPo').text(),
@@ -107,7 +218,12 @@
     }
 
     function handleImportCancelled(pesan) {
-        // update UI saat import dibatalkan
+        // stop animasi dan update UI saat import dibatalkan
+        if (importProgressTimer) {
+            clearInterval(importProgressTimer);
+            importProgressTimer = null;
+        }
+        stopStatusAnimationPo();
         updateImportUiProgressPo(
             0,
             $('#importProcessedPo').text(),
@@ -192,6 +308,7 @@
                     $('#import-progress-wrap').removeClass('hiding');
                     $('#importTotalPo').text(res.totalRows || 0);
                     $('#importProcessedPo').text(0);
+                    currentImportUiProgress = 0;
                     updateImportUiProgressPo(0, 0, res.totalRows, 'Mulai memproses...');
 
                     // tombol Cancel kini benar-benar cancel proses
