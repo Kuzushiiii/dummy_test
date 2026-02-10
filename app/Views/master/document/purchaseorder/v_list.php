@@ -29,7 +29,7 @@
                         <i class="bx bx-search"></i>
                         Apply
                     </button>
-                    <button type="button" id="btnResetFilter" class="btn btn-sm btn-info me-1">
+                    <button type="button" id="btnResetFilter" class="btn btn-danger btn-info me-1">
                         <i class="bx bx-reset"></i>
                         Reset
                     </button>
@@ -41,6 +41,10 @@
                     <i class="bx bx-plus-circle margin-r-2"></i>
                     <span class="fw-normal fs-7">Add New</span>
                 </a>
+                <button type="button" id="btnImportExcel" class="btn btn-info btn-sm dflex align-center">
+                    <i class="bx bx-upload margin-r-2"></i>
+                    <span class="fw-normal fs-7">Import Excel</span>
+                </button>
                 <button type="button" id="btnExportExcel" class="btn btn-success btn-sm dflex align-center">
                     <i class="bx bx-file margin-r-2"></i>
                     <span class="fw-normal fs-7">Export Excel</span>
@@ -153,6 +157,9 @@
             processing: true,
             serverSide: true,
             destroy: true,
+            order: [
+                [1, 'asc']
+            ],
             ajax: {
                 url: '<?= getURL("purchaseorder/table"); ?>',
                 type: 'POST',
@@ -231,11 +238,25 @@
         }, 'json');
     }
 
+    // State Export Excel
     let currentExportId = null;
     let exportRunning = false;
     let exportOffset = 0;
     const exportLimit = 500;
     let currentProgress = 0;
+
+    // State Import Excel
+    let currentImportId = null;
+    let importRunning = false;
+    let importOffset = 0;
+    const importLimit = 500;
+    let currentImportProgress = 0;
+
+    $('#btnImportExcel').on('click', function() {
+        modalForm('Import Purchase Order', 'modal-lg', '<?= getURL("purchaseorder/formImport"); ?>', {
+            identifier: '#btnImportExcel'
+        });
+    });
 
     $('#btnExportExcel').on('click', function() {
         // kalau masih ada proses export berjalan, jangan mulai baru
@@ -421,6 +442,100 @@
                 backdrop: true,
                 keyboard: true
             });
+        });
+    }
+
+    // ========= IMPORT BACKEND-CHUNK (dipanggil dari v_import) =========
+    function startImport(importId, totalRows) {
+        currentImportId = importId;
+        importOffset = 0;
+        importRunning = true;
+        currentImportProgress = 0;
+        processImportChunk(); // loop pertama
+    }
+
+    function processImportChunk() {
+        if (!importRunning || !currentImportId) return;
+
+        $.post('<?= getURL("purchaseorder/processImportChunk"); ?>', {
+            importId: currentImportId,
+            limit: importLimit,
+            offset: importOffset,
+            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+        }, function(res) {
+            if (res.csrfToken) {
+                $("#csrf_token").val(encrypter(res.csrfToken));
+            }
+
+            if (res.sukses != 1) {
+                importRunning = false;
+                // update progress text di dalam v_import
+                if (typeof handleImportProgressError === 'function') {
+                    handleImportProgressError(res.pesan || 'Gagal memproses import');
+                } else {
+                    alert(res.pesan || 'Gagal memproses import');
+                }
+                return;
+            }
+
+            const progress = res.progress || 0;
+            if (typeof handleImportProgressUpdate === 'function') {
+                handleImportProgressUpdate(progress, res);
+            }
+
+            if (typeof res.offset_next !== 'undefined') {
+                importOffset = res.offset_next;
+            } else {
+                importOffset += importLimit;
+            }
+
+            if (res.finished) {
+                importRunning = false;
+                if (typeof handleImportFinished === 'function') {
+                    handleImportFinished(res);
+                }
+                if (poTable) {
+                    poTable.ajax.reload(null, false);
+                }
+            } else {
+                setTimeout(processImportChunk, 400);
+            }
+        }, 'json').fail(function() {
+            importRunning = false;
+            if (typeof handleImportProgressError === 'function') {
+                handleImportProgressError('Terjadi error saat memproses import');
+            } else {
+                alert('Terjadi error saat memproses import');
+            }
+        });
+    }
+
+    function cancelImport() {
+        if (!currentImportId) return;
+
+        // matikan loop sebelum kirim request cancel
+        importRunning = false;
+
+        $.post('<?= getURL("purchaseorder/processImportChunk"); ?>', {
+            importId: currentImportId,
+            cancel: 1,
+            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+        }, function(res) {
+            if (res.csrfToken) {
+                $("#csrf_token").val(encrypter(res.csrfToken));
+            }
+
+            if (typeof handleImportCancelled === 'function') {
+                handleImportCancelled(res.pesan || 'Import dibatalkan');
+            } else {
+                alert(res.pesan || 'Import dibatalkan');
+            }
+        }, 'json').fail(function() {
+            if (typeof handleImportCancelled === 'function') {
+                handleImportCancelled('Gagal membatalkan import');
+            } else {
+                alert('Gagal membatalkan import');
+            }
         });
     }
 

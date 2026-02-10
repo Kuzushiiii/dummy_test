@@ -60,7 +60,7 @@ class PurchaseOrder extends BaseController
 
         $table->updateRow(function ($db, $no) {
             $btn_edit = "<button type='button' class='btn btn-sm btn-warning me-1' onclick=\"window.location.href='" . getURL('purchaseorder/form/' . encrypting($db->id)) . "'\"><i class='bx bx-edit-alt'></i></button>";
-            $btn_hapus = '<button type="button" class="btn btn-sm btn-danger" onclick="modalDelete(\'Delete Purchase Order - ' . addslashes($db->transcode) . '\', {\'link\':\'' . getURL('purchaseorder/deleteData') . '\', \'id\':\'' . encrypting($db->id) . '\', \'pagetype\':\'table\'})"><i class=\'bx bx-trash\'></i></button>';
+            $btn_hapus = '<button type="button" class="btn btn-sm btn-danger" onclick="modalDelete(\'Delete Purchase Order - ' . addslashes($db->transcode) . '\', {\'link\':\'' . getURL('purchaseorder/deleteData') . '\', \'id\':\'' . encrypting($db->id) . '\', \'pagetype\':\'table\', \'table-id\':\'purchaseorderTable\'})"><i class=\'bx bx-trash\'></i></button>';
 
             // tanpa logo (default)
             $btn_print_no_logo = "<button type='button' class='btn btn-sm btn-info me-1' title='Print tanpa logo' onclick=\"window.open('" . getURL('purchaseorder/pdf/' . encrypting($db->id)) . "', '_blank')\"><i class='bx bx-printer'></i></button>";
@@ -524,7 +524,7 @@ class PurchaseOrder extends BaseController
     }
 
     //Step 1: membuat file sheet baru -> simpan file sementara -> simpan state di session
-     public function startExport()
+    public function startExport()
     {
         log_message('debug', 'startExport called');
         $session = session();
@@ -653,7 +653,7 @@ class PurchaseOrder extends BaseController
         $limitReq  = (int) $this->request->getPost('limit');
         $offsetReq = $this->request->getPost('offset');
 
-         $limit  = $limitReq > 0 ? $limitReq : $this->exportlimit;
+        $limit  = $limitReq > 0 ? $limitReq : $this->exportlimit;
         $offset = is_numeric($offsetReq) ? (int) $offsetReq : $state['offset'];
         $totalRows = $state['totalRows'];
 
@@ -1006,5 +1006,286 @@ class PurchaseOrder extends BaseController
 
         $pdf->Output('I', 'Purchase_Order.pdf');
         exit;
+    }
+
+    private function convertExcelDateToMysql($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        // Jika numeric (serial date Excel)
+        if (is_numeric($value)) {
+            try {
+                $phpDate = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value);
+                return $phpDate->format('Y-m-d');
+            } catch (\Throwable $e) {
+                // fallback ke parse string
+            }
+        }
+
+        // Jika string, coba parse dengan strtotime (harus support "01 January 2026")
+        $ts = strtotime($value);
+        if ($ts === false) {
+            return null;
+        }
+        return date('Y-m-d', $ts);
+    }
+
+    public function formImport()
+    {
+        $dt['view'] = view('master/document/purchaseorder/v_import', []);
+        $dt['csrfToken'] = csrf_hash();
+        return $this->response->setJSON($dt);
+    }
+
+    public function startImport()
+    {
+        $session = session();
+        $file = $this->request->getFile('excelfile');
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'File Excel tidak valid',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        $tempDir = WRITEPATH . 'uploads/po_import/';
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+        $file->move($tempDir, $newName);
+        $filePath = $tempDir . $newName;
+
+        try {
+            $spreadsheet = IOFactory::load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestRow();
+            $totalRows = max(0, $highestRow - 1); // row 1 header
+        } catch (\Throwable $e) {
+            @unlink($filePath);
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'Gagal membaca file Excel: ' . $e->getMessage(),
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        if ($totalRows <= 0) {
+            @unlink($filePath);
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'Tidak ada data di file Excel',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        $importId = uniqid('po_import_', true);
+        $session->set("import_po_{$importId}", [
+            'filePath'   => $filePath,
+            'totalRows'  => $totalRows,
+            'offset'     => 0,
+            'status'     => 'running',
+            'undfhCount' => 0,
+        ]);
+
+        return $this->response->setJSON([
+            'sukses'    => 1,
+            'importId'  => $importId,
+            'totalRows' => $totalRows,
+            'csrfToken' => csrf_hash()
+        ]);
+    }
+
+    public function processImportChunk()
+    {
+        $session  = session();
+        $importId = $this->request->getPost('importId');
+        $cancel   = $this->request->getPost('cancel');
+
+        if (!$importId) {
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'importId tidak ditemukan',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        $state = $session->get("import_po_{$importId}");
+        if (!$state) {
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'State import tidak ditemukan / sudah kadaluarsa',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        if ($cancel) {
+            $state['status'] = 'cancelled';
+            $session->set("import_po_{$importId}", $state);
+            return $this->response->setJSON([
+                'sukses'    => 1,
+                'cancelled' => true,
+                'pesan'     => 'Import dibatalkan',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        if ($state['status'] !== 'running') {
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'Import tidak dalam status berjalan',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        $limitReq  = (int) $this->request->getPost('limit');
+        $offsetReq = $this->request->getPost('offset');
+
+        $limit  = $limitReq > 0 ? $limitReq : $this->exportlimit;
+        $offset = is_numeric($offsetReq) ? (int) $offsetReq : $state['offset'];
+        $totalRows = $state['totalRows'];
+        $filePath  = $state['filePath'];
+
+        if (!is_file($filePath)) {
+            $state['status'] = 'error';
+            $session->set("import_po_{$importId}", $state);
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'File import tidak ditemukan',
+                'csrfToken' => csrf_hash()
+            ]);
+        }
+
+        try {
+            $spreadsheet = IOFactory::load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestRow();
+
+            $startRow = 2 + $offset;          // row 1 = header
+            $endRow   = $startRow + $limit - 1;
+            $endRow   = min($endRow, $highestRow);
+
+            $this->db->transBegin();
+            $undfhCountChunk = 0;
+
+            for ($row = $startRow; $row <= $endRow; $row++) {
+                // Mapping sesuai template:
+                // A = No (diabaikan)
+                // B = TransCode
+                // C = TransDate (format teks: "01 January 2026")
+                // D = Supply Date
+                // E = Supplier (nama)
+                // F = Grand Total
+                // G = Description
+
+                $transCode   = trim((string)$sheet->getCell("B{$row}")->getValue());
+                $transDate   = trim((string)$sheet->getCell("C{$row}")->getFormattedValue());
+                $supplyDate  = trim((string)$sheet->getCell("D{$row}")->getFormattedValue());
+                $supplierNm  = trim((string)$sheet->getCell("E{$row}")->getValue());
+                $grandTotal  = (float)$sheet->getCell("F{$row}")->getCalculatedValue();
+                $description = trim((string)$sheet->getCell("G{$row}")->getValue());
+
+                // Jika baris kosong total, lewati
+                if ($transCode === '' && $supplierNm === '' && $grandTotal === 0.0 && $description === '') {
+                    continue;
+                }
+
+                // Validasi minimal
+                if ($transCode === '' || $transDate === '' || $supplierNm === '') {
+                    $undfhCountChunk++;
+                    continue;
+                }
+
+                // Konversi tanggal ke Y-m-d
+                $transDateDb  = $this->convertExcelDateToMysql($transDate);
+                $supplyDateDb = $this->convertExcelDateToMysql($supplyDate);
+
+                if ($transDateDb === null) {
+                    $undfhCountChunk++;
+                    continue;
+                }
+
+                // Cari supplier berdasarkan nama
+                $supplierRow = $this->ModelPoHd->findSupplierByName($supplierNm);
+                if (empty($supplierRow)) {
+                    // supplier tidak ditemukan
+                    $undfhCountChunk++;
+                    continue;
+                }
+                $supplierId = $supplierRow['id'];
+
+                // Cek apakah transcode sudah ada -> kalau sudah, lewati
+                if ($this->ModelPoHd->isTransCodeExists($transCode)) {
+                    $undfhCountChunk++;
+                    continue;
+                }
+
+                // Insert header PO, tanpa detail
+                $dataHd = [
+                    'transcode'   => $transCode,
+                    'transdate'   => $transDateDb,
+                    'supplydate'  => $supplyDateDb,
+                    'supplierid'  => $supplierId,
+                    'grandtotal'  => (float)$grandTotal,
+                    'description' => $description,
+                    'createdby'   => getSession('userid'),
+                    'createddate' => date('Y-m-d H:i:s'),
+                ];
+
+                $this->ModelPoHd->store($dataHd);
+            }
+
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+                return $this->response->setJSON([
+                    'sukses' => 0,
+                    'pesan'  => 'Gagal menyimpan data import ke database',
+                    'csrfToken' => csrf_hash()
+                ]);
+            }
+            $this->db->transCommit();
+
+            $offset += $limit;
+            $state['offset'] = $offset;
+            $state['undfhCount'] += $undfhCountChunk;
+
+            $processed = min($offset, $totalRows);
+            $progress  = $totalRows > 0 ? round(($processed / $totalRows) * 100) : 100;
+            $finished  = false;
+
+            if ($processed >= $totalRows || $endRow >= $highestRow) {
+                $finished = true;
+                $progress = 100;
+                $state['status'] = 'finished';
+                @unlink($filePath);
+            }
+
+            $session->set("import_po_{$importId}", $state);
+
+            return $this->response->setJSON([
+                'sukses'      => 1,
+                'finished'    => $finished,
+                'progress'    => $progress,
+                'limit'       => $limit,
+                'offset_next' => $state['offset'],
+                'processed'   => $processed,
+                'totalRows'   => $totalRows,
+                'undfhCount'  => $state['undfhCount'],
+                'csrfToken'   => csrf_hash()
+            ]);
+        } catch (\Throwable $e) {
+            $state['status'] = 'error';
+            $session->set("import_po_{$importId}", $state);
+            return $this->response->setJSON([
+                'sukses' => 0,
+                'pesan'  => 'Terjadi error saat membaca file: ' . $e->getMessage(),
+                'csrfToken' => csrf_hash()
+            ]);
+        }
     }
 }

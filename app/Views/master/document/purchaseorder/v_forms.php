@@ -273,9 +273,17 @@
                 $('#modaldetail-form').html(html);
                 $('#modaldetail-title').text('Edit Detail');
                 $('#modaldetail').modal('show');
-                // Initialize select2 and events
-                generateSelect2('#modal-productid', '#edit-detail-form', '<?= base_url('purchaseorder/getproducts') ?>', 'Pilih Product');
-                generateSelect2('#modal-uomid', '#edit-detail-form', '<?= base_url('purchaseorder/getuoms') ?>', 'Pilih UOM');
+                // Initialize select2 (tanpa AJAX) untuk modal edit
+                $('#modal-productid').select2({
+                    dropdownParent: $('#modaldetail'),
+                    placeholder: 'Pilih Product',
+                    width: '100%'
+                });
+                $('#modal-uomid').select2({
+                    dropdownParent: $('#modaldetail'),
+                    placeholder: 'Pilih UOM',
+                    width: '100%'
+                });
                 $('#modal-qty, #modal-price').on('input', function() {
                     const qty = parseFloat($('#modal-qty').val()) || 0;
                     const price = parseFloat($('#modal-price').val()) || 0;

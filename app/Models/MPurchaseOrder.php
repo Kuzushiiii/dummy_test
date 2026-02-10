@@ -240,6 +240,20 @@ class MPurchaseOrder extends Model
             ->getRowArray();
     }
 
+    public function findSupplierByName(string $name): ?array
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+
+        return $this->db->table('mssupplier')
+            ->select('id, suppliername')
+            ->where('LOWER(suppliername)', strtolower($name))
+            ->get()
+            ->getRowArray() ?: null;
+    }
+
     //ambil data suppliers untuk select2
     public function getSuppliers($search = '', $limit = 10)
     {

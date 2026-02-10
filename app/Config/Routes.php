@@ -146,4 +146,7 @@ $routes->group('purchaseorder', function ($routes) {
     $routes->post('startExport', 'PurchaseOrder::startExport');
     $routes->post('processExportChunk', 'PurchaseOrder::processExportChunk');
     $routes->get('downloadExport/(:any)', 'PurchaseOrder::downloadExport/$1');
+    $routes->add('formImport', 'PurchaseOrder::formImport', $this->noauth);
+    $routes->post('startImport', 'PurchaseOrder::startImport');
+    $routes->post('processImportChunk', 'PurchaseOrder::processImportChunk');
 });

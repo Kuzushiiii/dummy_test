@@ -1,4 +1,3 @@
-
 </div>
 </div>
 </div>
@@ -1144,20 +1143,27 @@
                                 // dp('#' + reloadpage);
                             })
                         } else if (pagetype == 'table') {
-                        if (table_cls == 'detailsTable') {
-                            if (typeof detailsTbl !== 'undefined') {
-                                detailsTbl.ajax.reload(null, false);
-                            }
-                            if (res.grandtotal !== undefined) {
-                                $('#grandTotal').val(parseFloat(res.grandtotal).toFixed(2));
-                            }
-                            // Reload header table (purchase order list) with delay
-                            setTimeout(function() {
-                                if (window.purchaseOrderTable) {
+                            if (table_cls == 'detailsTable') {
+                                if (typeof detailsTbl !== 'undefined') {
+                                    detailsTbl.ajax.reload(null, false);
+                                }
+                                if (res.grandtotal !== undefined) {
+                                    $('#grandTotal').val(parseFloat(res.grandtotal).toFixed(2));
+                                }
+                                // Reload header table (purchase order list) with delay
+                                setTimeout(function() {
+                                    if (window.purchaseOrderTable) {
+                                        window.purchaseOrderTable.ajax.reload(null, false);
+                                    }
+                                }, 120);
+                            } else if (table_cls == 'purchaseorderTable') {
+                                // khusus header Purchase Order di v_list.php
+                                if (typeof poTable !== 'undefined' && poTable) {
+                                    poTable.ajax.reload(null, false);
+                                } else if (window.purchaseOrderTable) {
                                     window.purchaseOrderTable.ajax.reload(null, false);
                                 }
-                            }, 120);
-                        } else {
+                            } else {
                                 tbl.ajax.reload();
                                 if (typeof tbls !== 'undefined') {
                                     tbls.ajax.reload();
