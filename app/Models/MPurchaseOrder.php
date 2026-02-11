@@ -63,17 +63,11 @@ class MPurchaseOrder extends Model
             ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
             ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left');
 
-        // FILTER BY TRANSDATE
-        if (!empty($filterTransDateFrom) && empty($filterTransDateTo)) {
-            // kalau hanya From yang diisi, anggap filter persis tanggal itu
-            $builder->where('poh.transdate', $filterTransDateFrom);
-        } else {
-            if (!empty($filterTransDateFrom)) {
-                $builder->where('poh.transdate >=', $filterTransDateFrom);
-            }
-            if (!empty($filterTransDateTo)) {
-                $builder->where('poh.transdate <=', $filterTransDateTo);
-            }
+        if (!empty($filterTransDateFrom)) {
+            $builder->where('poh.transdate >=', $filterTransDateFrom);
+        }
+        if (!empty($filterTransDateTo)) {
+            $builder->where('poh.transdate <=', $filterTransDateTo);
         }
 
         // FILTER BY SUPPLIER
@@ -331,15 +325,11 @@ class MPurchaseOrder extends Model
             ->join('mssupplier', 'mssupplier.id = poh.supplierid', 'left')
             ->join('trpurchaseorderdt dt', 'dt.headerid = poh.id', 'left');
 
-        if (!empty($transDateFrom) && empty($transDateTo)) {
-            $builder->where('poh.transdate', $transDateFrom);
-        } else {
-            if (!empty($transDateFrom)) {
-                $builder->where('poh.transdate >=', $transDateFrom);
-            }
-            if (!empty($transDateTo)) {
-                $builder->where('poh.transdate <=', $transDateTo);
-            }
+        if (!empty($transDateFrom)) {
+            $builder->where('poh.transdate >=', $transDateFrom);
+        }
+        if (!empty($transDateTo)) {
+            $builder->where('poh.transdate <=', $transDateTo);
         }
         if (!empty($supplierId)) {
             $builder->where('poh.supplierid', $supplierId);
@@ -366,15 +356,11 @@ class MPurchaseOrder extends Model
     ): int {
         $builder = $this->db->table($this->table . ' as poh');
 
-        if (!empty($transDateFrom) && empty($transDateTo)) {
-            $builder->where('poh.transdate', $transDateFrom);
-        } else {
-            if (!empty($transDateFrom)) {
-                $builder->where('poh.transdate >=', $transDateFrom);
-            }
-            if (!empty($transDateTo)) {
-                $builder->where('poh.transdate <=', $transDateTo);
-            }
+        if (!empty($transDateFrom)) {
+            $builder->where('poh.transdate >=', $transDateFrom);
+        }
+        if (!empty($transDateTo)) {
+            $builder->where('poh.transdate <=', $transDateTo);
         }
         if (!empty($supplierId)) {
             $builder->where('poh.supplierid', $supplierId);

@@ -783,10 +783,10 @@ class PurchaseOrder extends BaseController
                 $sheet->setCellValue('B' . $rowNumber, $row['transcode']);
 
                 $transdate  = !empty($row['transdate'])
-                    ? date('d F Y', strtotime($row['transdate']))
+                    ? date('d-m-Y', strtotime($row['transdate']))
                     : '';
                 $supplydate = !empty($row['supplydate'])
-                    ? date('d F Y', strtotime($row['supplydate']))
+                    ? date('d-m-Y', strtotime($row['supplydate']))
                     : '';
 
                 $sheet->setCellValue('C' . $rowNumber, $transdate);
@@ -1004,7 +1004,8 @@ class PurchaseOrder extends BaseController
         $pdf->SetFont('Arial', 'I', 10);
         $pdf->Cell(141, 3, '(Price include PPN)', 0, 1, 'R');
 
-        $pdf->Output('I', 'Purchase_Order.pdf');
+        // Coba pakai download (D) untuk tes, biasanya lebih cepat dirasa
+        $pdf->Output('D', 'Purchase_Order.pdf');
         exit;
     }
 

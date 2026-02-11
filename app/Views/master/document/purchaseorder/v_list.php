@@ -8,7 +8,7 @@
             <div class="dflex align-center" style="gap:16px;flex-wrap:wrap;">
                 <div class="dflex align-center" style="gap:6px; padding-left:10px;">
                     <label for="filterTransDateFrom" class="mb-0" style="white-space:nowrap;font-size:14px;">
-                        Transaksi Dari Tanggal
+                        Dari Tanggal
                     </label>
                     <input type="date" id="filterTransDateFrom" class="form-control form-control-sm date-filter-input">
                 </div>
@@ -18,13 +18,15 @@
                     </label>
                     <input type="date" id="filterTransDateTo" class="form-control form-control-sm date-filter-input">
                 </div>
-                <div class="dflex align-center" style="gap:8px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
                     <label for="filterSupplier" class="mb-0" style="white-space:nowrap;font-size:14px;">
                         Supplier
                     </label>
                     <select id="filterSupplier" class="form-control form-control-sm" style="min-width:220px;">
                         <option value="">All Supplier</option>
                     </select>
+                </div>
+                <div class="dflex align-center" style="gap:8px;">
                     <button type="button" id="btnApplyFilter" class="btn btn-sm btn-primary me-1">
                         <i class="bx bx-search"></i>
                         Apply
