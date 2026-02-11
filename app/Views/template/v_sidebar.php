@@ -13,7 +13,7 @@
         .btn-logout {
             display: none !important;
         }
-        
+
     }
 </style>
 <aside>
@@ -88,9 +88,16 @@
                     <i class='bx bxs-cart-download'></i>
                     <span class='fw-normal fs-7'>Purchase Order</span>
                 </div>
-        <button class=" btn btn-primary dflex align-center w-100 btn-logout" onclick="return toPage('<?= getURL('logout') ?>')" style="display: none;">
-            <i class="bx bx-log-out margin-r-3"></i>
-            <span class="fw-normal fs-7">Log Out</span>
-        </button>
-    </div>
+            </a>
+            <a href='<?= getURL('files') ?>' class='no-parent'>
+                <div class='sidebar-item'>
+                    <i class='bx bxs-file'></i>
+                    <span class='fw-normal fs-7'>Files</span>
+                </div>
+            </a>
+            <button class=" btn btn-primary dflex align-center w-100 btn-logout" onclick="return toPage('<?= getURL('logout') ?>')" style="display: none;">
+                <i class="bx bx-log-out margin-r-3"></i>
+                <span class="fw-normal fs-7">Log Out</span>
+            </button>
+        </div>
 </aside>

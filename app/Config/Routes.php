@@ -150,3 +150,21 @@ $routes->group('purchaseorder', function ($routes) {
     $routes->post('startImport', 'PurchaseOrder::startImport');
     $routes->post('processImportChunk', 'PurchaseOrder::processImportChunk');
 });
+
+// Files Routes
+$routes->group('files', function ($routes) {
+    $routes->add('', 'Files::index');
+    $routes->add('table', 'Files::datatable');
+
+    // form modal (add / edit kalau nanti mau)
+    $routes->add('form', 'Files::form');
+    $routes->add('form/(:any)', 'Files::form/$1');
+
+    // simpan data + upload via dropzone
+    $routes->add('save', 'Files::save');
+    $routes->add('upload', 'Files::upload');
+
+    $routes->add('delete', 'Files::delete');
+    $routes->add('download/(:num)', 'Files::download/$1');
+    $routes->add('preview/(:num)', 'Files::preview/$1');
+});
