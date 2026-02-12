@@ -56,7 +56,7 @@ upload/*
 app/Config/database.local.php
 app/Config/App.local.php
 
-
+public/uploads/files/*.local
 writable/cache/*
 !writable/cache/index.html
 
