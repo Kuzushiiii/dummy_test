@@ -12,6 +12,11 @@ class MFiles extends Model
         'filename',
         'filerealname',
         'filedirectory',
+        'created_date',
+        'created_by',
+        'update_date',
+        'update_by'
+
     ];
 
     public function __construct()
@@ -23,14 +28,20 @@ class MFiles extends Model
     {
         return [
             null,            // 0 - No
-            'filerealname',  // 1 - Nama asli file
-            'filename',      // 2 - Nama file di server
-            null,            // 3 - Aksi
+            'filerealname',      // 1 - File Name
+            'filedirectory', // 2 - File Path
+            null,    // 3 - Created At
+            'created_by',    // 4 - Created By
+            null,            // 5 - Actions
         ];
     }
 
     public function datatable()
     {
-        return $this->db->table($this->table);
+        // join ke tabel user agar bisa ambil nama pembuat & pengupdate
+        return $this->db->table($this->table . ' f')
+            ->select('f.*, u.fullname AS created_by_name, uu.fullname AS updated_by_name')
+            ->join('msuser u', 'u.id = f.created_by', 'left')
+            ->join('msuser uu', 'uu.id = f.update_by', 'left');
     }
 }

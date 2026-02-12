@@ -60,15 +60,29 @@ class Files extends BaseController
         $table = Datatables::method([MFiles::class, 'datatable'], 'searchable')->make();
 
         $table->updateRow(function ($row, $no) {
-            // $row bisa berupa array atau object → samakan dulu
-            $fileDir = is_array($row) ? ($row['filedirectory'] ?? '') : ($row->filedirectory ?? '');
-            $fileId  = is_array($row) ? ($row['fileid'] ?? null)     : ($row->fileid ?? null);
-            $realNm  = is_array($row) ? ($row['filerealname'] ?? '') : ($row->filerealname ?? '');
-            $srvNm   = is_array($row) ? ($row['filename'] ?? '')     : ($row->filename ?? '');
+            // Normalisasi row ke array
+            if (is_object($row)) {
+                $row = (array)$row;
+            }
 
+            $fileId   = $row['fileid']        ?? null;
+            $realNm    = $row['filerealname']      ?? '';
+            $srvNm     = $row['filename'] ?? '';
+            $fileDir   = $row['filedirectory'] ?? '';
+            $created   = $row['created_date']   ?? '';
+            $createdById = $row['created_by'] ?? null;
+            $createdBy = $row['created_by_name'] ?? $createdById;
+
+
+            // Cek apakah file image untuk tombol preview
             $isImage = false;
-            if (is_string($fileDir) && $fileDir !== '' && is_file($fileDir)) {
-                $mime = @mime_content_type($fileDir);
+            $fullPath = null;
+            if (is_string($fileDir) && $fileDir !== '') {
+                $fullPath = FCPATH . ltrim($fileDir, '/\\');
+            }
+
+            if ($fullPath && is_file($fullPath)) {
+                $mime = @mime_content_type($fullPath);
                 if (is_string($mime) && preg_match('/^image\//', $mime)) {
                     $isImage = true;
                 }
@@ -78,18 +92,21 @@ class Files extends BaseController
                 ? "<button type='button' class='btn btn-sm btn-info' onclick=\"previewFile({$fileId})\"><i class='bx bx-show'></i></button>"
                 : '';
 
-            $btnEdit = "<button type='button' class='btn btn-sm btn-warning' onclick=\"modalForm('Edit File - " . esc($realNm) . "', 'modal-lg', '" . getURL('files/form/' . encrypting($fileId)) . "', {identifier: this})\"><i class='bx bx-edit-alt'></i></button>";
+            // tombol edit metadata / ganti file
+            $btnEdit = "<button type='button' class='btn btn-sm btn-warning' onclick=\"modalForm('Edit File', 'modal-lg', '" . getURL('files/form/' . encrypting($fileId)) . "', {identifier: this})\"><i class='bx bx-edit-alt'></i></button>";
 
             $btnDownload = "<a href='" . getURL('files/download/' . $fileId) . "' class='btn btn-sm btn-success'><i class='bx bx-download'></i></a>";
 
-            $btnDelete = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete File - " . esc($realNm) . "', {'link':'" . getURL('files/delete') . "', 'id':'" . encrypting($fileId) . "', 'pagetype':'table'})\"><i class='bx bx-trash'></i></button>";
+            $btnDelete = "<button type='button' class='btn btn-sm btn-danger' onclick=\"modalDelete('Delete File', {'link':'" . getURL('files/delete') . "', 'id':'" . encrypting($fileId) . "', 'pagetype':'table', 'after':'files'})\"><i class='bx bx-trash'></i></button>";
 
             $actions = "<div style='display:flex;gap:4px;justify-content:center;'>{$btnPreview}{$btnEdit}{$btnDownload}{$btnDelete}</div>";
 
             return [
                 $no,
-                esc($realNm),
-                esc($srvNm),
+                esc($realNm !== '' ? $realNm : $srvNm),
+                esc($fileDir),
+                esc($created),
+                esc($createdBy),
                 $actions,
             ];
         });
@@ -100,36 +117,76 @@ class Files extends BaseController
     public function upload()
     {
         $file = $this->request->getFile('file');
+        $formType = $this->request->getPost('form_type');
 
-        if (!$file || !$file->isValid()) {
+
+        if (!$file) {
             return $this->response->setJSON([
                 'sukses'    => 0,
-                'pesan'     => 'File tidak valid',
+                'pesan'     => 'Tidak ada file yang dikirim (field "file" kosong)',
                 'csrfToken' => csrf_hash(),
             ]);
         }
 
-        $uploadPath = WRITEPATH . 'uploads/files/';
+        if (!$file->isValid()) {
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'Upload error: ' . $file->getErrorString() . ' (' . $file->getError() . ')',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        // Simpan ke public/uploads/files
+        $relativePath = 'uploads/files/';          // disimpan di DB
+        $uploadPath   = FCPATH . $relativePath;    // path fisik di disk
+
         if (!is_dir($uploadPath)) {
             mkdir($uploadPath, 0777, true);
         }
 
-        $newName = $file->getRandomName();
+        $newName      = $file->getRandomName();
+        $originalName = $file->getClientName();
+
         $file->move($uploadPath, $newName);
 
+        // tentukan created_by dari session login (userid)
+        $createdBy = 9;
+        if (getSession('userid')) {
+            $createdBy = (int) getSession('userid');
+        }
+
+        // kalau ADD: langsung insert ke DB
+        if ($formType === 'add') {
+            $data = [
+                'filerealname'  => $originalName,
+                'filename'      => $newName,
+                'filedirectory' => $relativePath . $newName,
+                'created_date'  => date('Y-m-d H:i:s'),
+                'created_by'    => $createdBy,
+            ];
+            $this->model->insert($data);
+
+            return $this->response->setJSON([
+                'sukses'        => 1,
+                'pesan'         => 'File Berhasil di upload',
+                'filename'      => $newName,
+                'filedirectory' => $relativePath . $newName,
+                'originalname'  => $originalName,
+                'csrfToken'     => csrf_hash(),
+            ]);
+        }
+
+        // kalau EDIT: jangan insert, hanya kembalikan info file baru
         return $this->response->setJSON([
-            'sukses'       => 1,
-            'pesan'        => 'File uploaded',
-            'filename'     => $newName,
-            'filedirectory' => $uploadPath . $newName,
-            'originalname' => $file->getClientName(),
-            'csrfToken'    => csrf_hash(),
+            'sukses'        => 1,
+            'pesan'         => 'File Berhsail di upload',
+            'filename'      => $newName,
+            'filedirectory' => $relativePath . $newName,
+            'originalname'  => $originalName,
+            'csrfToken'     => csrf_hash(),
         ]);
     }
 
-    /**
-     * Simpan data ke msfiles berdasarkan inputan modal (real name, server name, dll).
-     */
     public function save()
     {
         $this->db->transBegin();
@@ -146,24 +203,53 @@ class Files extends BaseController
                 $id     = decrypting($fileId);
                 $before = $this->model->find($id) ?? [];
 
-                // kalau user tidak upload file baru, pakai data lama
-                if (empty($serverName) || empty($fileDir)) {
+                $isNewFile = !empty($serverName) && !empty($fileDir);
+
+                if (!$isNewFile) {
+                    // tidak ada file baru, pakai data lama
                     $serverName = $before['filename']      ?? '';
                     $fileDir    = $before['filedirectory'] ?? '';
                 }
 
-                if (empty($realName)) {
-                    $realName = $originalName ?: ($before['filerealname'] ?? $serverName);
+                if ($isNewFile) {
+                    if (!empty($originalName)) {
+                        $realName = $originalName;
+                    } else {
+                        $realName = $serverName;
+                    }
+                } else {
+                    if (empty($realName)) {
+                        if (!empty($before['filerealname'])) {
+                            $realName = $before['filerealname'];
+                        } else {
+                            $realName = $serverName;
+                        }
+                    }
                 }
-
                 if (empty($serverName) || empty($fileDir)) {
                     throw new Exception('Data file tidak lengkap untuk update');
+                }
+
+                // kalau ada file baru, hapus dulu file lama di disk
+                if ($isNewFile && !empty($before['filedirectory'])) {
+                    $oldPath = FCPATH . ltrim($before['filedirectory'], '/\\');
+                    if (is_file($oldPath)) {
+                        @unlink($oldPath);
+                    }
+                }
+
+                // user yang meng-update
+                $updatedBy = 9;
+                if (getSession('userid')) {
+                    $updatedBy = (int) getSession('userid');
                 }
 
                 $data = [
                     'filerealname'  => $realName,
                     'filename'      => $serverName,
                     'filedirectory' => $fileDir,
+                    'update_date'   => date('Y-m-d H:i:s'),
+                    'update_by'     => $updatedBy,
                 ];
 
                 $this->model->update($id, $data);
@@ -177,10 +263,17 @@ class Files extends BaseController
                     $realName = $originalName ?: $serverName;
                 }
 
+                $createdBy = 9;
+                if (getSession('userid')) {
+                    $createdBy = (int) getSession('userid');
+                }
+
                 $data = [
                     'filerealname'  => $realName,
                     'filename'      => $serverName,
                     'filedirectory' => $fileDir,
+                    'created_date'  => date('Y-m-d H:i:s'),
+                    'created_by'    => $createdBy,
                 ];
 
                 $this->model->insert($data);
@@ -197,7 +290,7 @@ class Files extends BaseController
             $this->db->transCommit();
             return $this->response->setJSON([
                 'sukses'    => 1,
-                'pesan'     => 'Data file berhasil disimpan',
+                'pesan'     => 'File berhasil di update',
                 'csrfToken' => csrf_hash(),
             ]);
         } catch (Exception $e) {
@@ -223,8 +316,11 @@ class Files extends BaseController
                 throw new Exception('File tidak ditemukan');
             }
 
-            if (!empty($row['filedirectory']) && is_file($row['filedirectory'])) {
-                @unlink($row['filedirectory']);
+            if (!empty($row['filedirectory'])) {
+                $path = FCPATH . ltrim($row['filedirectory'], '/\\');
+                if (is_file($path)) {
+                    @unlink($path);
+                }
             }
 
             $this->model->delete($id);
@@ -255,13 +351,20 @@ class Files extends BaseController
         }
 
         $fileDir = $row['filedirectory'] ?? null;
-        if (!is_string($fileDir) || $fileDir === '' || !is_file($fileDir)) {
+        if (!is_string($fileDir) || $fileDir === '') {
             return $this->response
                 ->setStatusCode(404)
-                ->setBody('File not found');
+                ->setBody('File not found (empty filedirectory)');
         }
 
-        $path = $fileDir;
+        $path = FCPATH . ltrim($fileDir, '/\\');
+
+        if (!is_file($path)) {
+            // sementara, untuk debug, kirim path yang dicek
+            return $this->response
+                ->setStatusCode(404)
+                ->setBody('File not found at: ' . $path);
+        }
 
         // filerealname bisa null / tidak ada → fallback ke basename(path)
         $realName = isset($row['filerealname']) && is_string($row['filerealname'])
@@ -292,13 +395,19 @@ class Files extends BaseController
         }
 
         $fileDir = $row['filedirectory'] ?? null;
-        if (!is_string($fileDir) || $fileDir === '' || !is_file($fileDir)) {
+        if (!is_string($fileDir) || $fileDir === '') {
             return $this->response
                 ->setStatusCode(404)
-                ->setBody('File not found');
+                ->setBody('File not found (empty filedirectory)');
         }
 
-        $path = $fileDir;
+        $path = FCPATH . ltrim($fileDir, '/\\');
+
+        if (!is_file($path)) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setBody('File not found at: ' . $path);
+        }
         $mime = mime_content_type($path);
 
         if (!is_string($mime) || !preg_match('/^image\//', $mime)) {

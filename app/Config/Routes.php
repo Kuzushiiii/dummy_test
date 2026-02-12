@@ -153,18 +153,18 @@ $routes->group('purchaseorder', function ($routes) {
 
 // Files Routes
 $routes->group('files', function ($routes) {
-    $routes->add('', 'Files::index');
-    $routes->add('table', 'Files::datatable');
+    $routes->add('', 'Files::index', $this->noauth);
+    $routes->add('table', 'Files::datatable', $this->noauth);
 
     // form modal (add / edit kalau nanti mau)
-    $routes->add('form', 'Files::form');
-    $routes->add('form/(:any)', 'Files::form/$1');
+    $routes->add('form', 'Files::form', $this->noauth);
+    $routes->add('form/(:any)', 'Files::form/$1', $this->noauth);
 
     // simpan data + upload via dropzone
-    $routes->add('save', 'Files::save');
-    $routes->add('upload', 'Files::upload');
+    $routes->add('save', 'Files::save', $this->noauth);
+    $routes->add('upload', 'Files::upload', $this->noauth);
 
-    $routes->add('delete', 'Files::delete');
-    $routes->add('download/(:num)', 'Files::download/$1');
-    $routes->add('preview/(:num)', 'Files::preview/$1');
+    $routes->add('delete', 'Files::delete', $this->noauth);
+    $routes->add('download/(:num)', 'Files::download/$1', $this->noauth);
+    $routes->add('preview/(:num)', 'Files::preview/$1', $this->noauth);
 });

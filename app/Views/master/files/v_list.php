@@ -20,8 +20,10 @@
                     <thead>
                         <tr>
                             <th class="tableheader">No</th>
-                            <th class="tableheader">Real Name</th>
                             <th class="tableheader">File Name</th>
+                            <th class="tableheader">File Path</th>
+                            <th class="tableheader">Created At</th>
+                            <th class="tableheader">Created By</th>
                             <th class="tableheader">Actions</th>
                         </tr>
                     </thead>
@@ -36,10 +38,11 @@
 
 <script>
     Dropzone.autoDiscover = false;
-    let filesTable;
+    // pastikan global
+    window.filesTable = null;
 
     $(document).ready(function() {
-        filesTable = $('#filesTable').DataTable({
+        window.filesTable = $('#filesTable').DataTable({
             processing: true,
             serverSide: true,
             destroy: true,
@@ -55,28 +58,28 @@
             },
             columns: [{
                     data: 0
-                },
+                }, // No
                 {
                     data: 1
-                },
+                }, // File Name
                 {
                     data: 2
-                },
+                }, // File Path
                 {
                     data: 3
-                },
+                }, // Created At
+                {
+                    data: 4
+                }, // Created By
+                {
+                    data: 5
+                }, // Actions
             ]
         });
     });
 
     function previewFile(id) {
         const url = '<?= getURL('files/preview') ?>/' + id;
-        const html = `
-            <div style="text-align:center;">
-                <img src="${url}" alt="preview" style="max-width:100%;max-height:70vh;">
-            </div>`;
-        $('#modaldetail-title').text('Preview File');
-        $('#modaldetail-form').html(html);
-        $('#modaldetail').modal('show');
+        window.open(url, '_blank');
     }
 </script>
