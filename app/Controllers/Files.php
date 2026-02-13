@@ -116,9 +116,9 @@ class Files extends BaseController
 
     public function upload()
     {
+        // METHOD LAMA (single upload) – boleh tetap dipakai kalau masih perlu
         $file = $this->request->getFile('file');
         $formType = $this->request->getPost('form_type');
-
 
         if (!$file) {
             return $this->response->setJSON([
@@ -136,9 +136,8 @@ class Files extends BaseController
             ]);
         }
 
-        // Simpan ke public/uploads/files
-        $relativePath = 'uploads/files/';          // disimpan di DB
-        $uploadPath   = FCPATH . $relativePath;    // path fisik di disk
+        $relativePath = 'uploads/files/';
+        $uploadPath   = FCPATH . $relativePath;
 
         if (!is_dir($uploadPath)) {
             mkdir($uploadPath, 0777, true);
@@ -149,13 +148,8 @@ class Files extends BaseController
 
         $file->move($uploadPath, $newName);
 
-        // tentukan created_by dari session login (userid)
-        $createdBy = 9;
-        if (getSession('userid')) {
-            $createdBy = (int) getSession('userid');
-        }
+        $createdBy = getSession('userid') ? (int) getSession('userid') : 9;
 
-        // kalau ADD: langsung insert ke DB
         if ($formType === 'add') {
             $data = [
                 'filerealname'  => $originalName,
@@ -165,25 +159,190 @@ class Files extends BaseController
                 'created_by'    => $createdBy,
             ];
             $this->model->insert($data);
-
-            return $this->response->setJSON([
-                'sukses'        => 1,
-                'pesan'         => 'File Berhasil di upload',
-                'filename'      => $newName,
-                'filedirectory' => $relativePath . $newName,
-                'originalname'  => $originalName,
-                'csrfToken'     => csrf_hash(),
-            ]);
         }
 
-        // kalau EDIT: jangan insert, hanya kembalikan info file baru
         return $this->response->setJSON([
             'sukses'        => 1,
-            'pesan'         => 'File Berhsail di upload',
+            'pesan'         => 'File berhasil diupload',
             'filename'      => $newName,
             'filedirectory' => $relativePath . $newName,
             'originalname'  => $originalName,
             'csrfToken'     => csrf_hash(),
+        ]);
+    }
+
+    /**
+     * Chunk upload: terima potongan file dan gabung di server.
+     * Param POST:
+     * - uploadId (string)
+     * - chunkIndex (int mulai 0)
+     * - totalChunks (int)
+     * - originalName (string)
+     * - totalSize (int)
+     * - form_type (add/edit)
+     * - file (UploadedFile) => chunk data
+     */
+    public function chunkUpload()
+    {
+        $uploadId     = $this->request->getPost('uploadId');
+        $chunkIndex   = (int) $this->request->getPost('chunkIndex');
+        $totalChunks  = (int) $this->request->getPost('totalChunks');
+        $originalName = $this->request->getPost('originalName');
+        $totalSize    = (int) $this->request->getPost('totalSize');
+        $formType     = $this->request->getPost('form_type');
+
+        $file = $this->request->getFile('file');
+
+        if (empty($uploadId) || !$file) {
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'Param uploadId atau file kosong',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        // Validasi total size (misal max 100 MB)
+        $maxSizeBytes = 100 * 1024 * 1024;
+        if ($totalSize > $maxSizeBytes) {
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'Ukuran file maksimal 100 MB',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        if (!$file->isValid()) {
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'Upload error chunk: ' . $file->getErrorString(),
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        // Simpan sementara ke writable/tmp
+        $tmpDir = WRITEPATH . 'uploads/tmp/';
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0777, true);
+        }
+
+        $tmpFilePath = $tmpDir . $uploadId . '.part';
+
+        // Append chunk ke file .part
+        $inputStream = fopen($file->getTempName(), 'rb');
+        $targetMode  = file_exists($tmpFilePath) ? 'ab' : 'wb';
+        $outputStream = fopen($tmpFilePath, $targetMode);
+
+        if (!$inputStream || !$outputStream) {
+            if ($inputStream) fclose($inputStream);
+            if ($outputStream) fclose($outputStream);
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'Gagal membuka stream untuk chunk',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        // copy manual supaya tidak pakai file_put_contents besar
+        while (!feof($inputStream)) {
+            $buffer = fread($inputStream, 8192);
+            fwrite($outputStream, $buffer);
+        }
+        fclose($inputStream);
+        fclose($outputStream);
+
+        $isLastChunk = ($chunkIndex + 1 === $totalChunks);
+
+        // Kalau masih ada chunk berikutnya, cukup balas sukses
+        if (!$isLastChunk) {
+            return $this->response->setJSON([
+                'sukses'        => 1,
+                'pesan'         => 'Chunk ' . $chunkIndex . ' tersimpan',
+                'isLastChunk'   => false,
+                'csrfToken'     => csrf_hash(),
+            ]);
+        }
+
+        // LAST CHUNK: pindahkan ke folder final + insert DB (kalau ADD)
+        if (!file_exists($tmpFilePath)) {
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'File sementara tidak ditemukan saat finalisasi',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        // Simpan ke public/uploads/files
+        $relativePath = 'uploads/files/';
+        $uploadPath   = FCPATH . $relativePath;
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        // nama random untuk disimpan di server
+        $newName = uniqid('f_', true) . '_' . preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', $originalName);
+        $finalPath = $uploadPath . $newName;
+
+        // pindahkan / rename file part
+        if (!rename($tmpFilePath, $finalPath)) {
+            @unlink($tmpFilePath);
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'Gagal memindahkan file final',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        $createdBy = getSession('userid') ? (int) getSession('userid') : 9;
+
+        // Kalau ADD: langsung insert ke DB
+        if ($formType === 'add') {
+            $data = [
+                'filerealname'  => $originalName,
+                'filename'      => $newName,
+                'filedirectory' => $relativePath . $newName,
+                'created_date'  => date('Y-m-d H:i:s'),
+                'created_by'    => $createdBy,
+            ];
+            $this->model->insert($data);
+        }
+
+        return $this->response->setJSON([
+            'sukses'        => 1,
+            'pesan'         => 'Upload selesai',
+            'isLastChunk'   => true,
+            'filename'      => $newName,
+            'filedirectory' => $relativePath . $newName,
+            'originalname'  => $originalName,
+            'csrfToken'     => csrf_hash(),
+        ]);
+    }
+
+    /**
+     * Cancel upload: hapus file sementara (.part) berdasarkan uploadId
+     */
+    public function cancelUpload()
+    {
+        $uploadId = $this->request->getPost('uploadId');
+
+        if (empty($uploadId)) {
+            return $this->response->setJSON([
+                'sukses'    => 0,
+                'pesan'     => 'uploadId tidak dikirim',
+                'csrfToken' => csrf_hash(),
+            ]);
+        }
+
+        $tmpDir      = WRITEPATH . 'uploads/tmp/';
+        $tmpFilePath = $tmpDir . $uploadId . '.part';
+
+        if (is_file($tmpFilePath)) {
+            @unlink($tmpFilePath);
+        }
+
+        return $this->response->setJSON([
+            'sukses'    => 1,
+            'pesan'     => 'Upload dibatalkan dan file sementara dihapus',
+            'csrfToken' => csrf_hash(),
         ]);
     }
 

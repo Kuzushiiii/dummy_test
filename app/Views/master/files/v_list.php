@@ -82,4 +82,10 @@
         const url = '<?= getURL('files/preview') ?>/' + id;
         window.open(url, '_blank');
     }
+
+    function afterDelete_files() {
+        if (window.filesTable && typeof window.filesTable.ajax !== 'undefined') {
+            window.filesTable.ajax.reload(null, false);
+        }
+    }
 </script>

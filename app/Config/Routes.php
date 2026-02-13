@@ -164,6 +164,10 @@ $routes->group('files', function ($routes) {
     $routes->add('save', 'Files::save', $this->noauth);
     $routes->add('upload', 'Files::upload', $this->noauth);
 
+    // chunk upload
+    $routes->post('chunkUpload', 'Files::chunkUpload', $this->noauth);
+    $routes->post('cancelUpload', 'Files::cancelUpload', $this->noauth);
+
     $routes->add('delete', 'Files::delete', $this->noauth);
     $routes->add('download/(:num)', 'Files::download/$1', $this->noauth);
     $routes->add('preview/(:num)', 'Files::preview/$1', $this->noauth);
